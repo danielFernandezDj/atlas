@@ -11,3 +11,87 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model companies {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+}
+
+model sites {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+}
+
+model buildings {
+  id              Int @id @default(autoincrement())
+  site_id         Int
+  building_number Int
+}
+
+model can {
+  id          Int    @id @default(autoincrement())
+  building_id Int
+  can_number  String
+}
+
+model positions {
+  id           Int @id @default(autoincrement())
+  can_id       Int
+  row_index    Int
+  column_index Int
+}
+
+model miner_model {
+  id           Int    @id @default(autoincrement())
+  manufacturer String
+  name         String
+  variant      String
+}
+
+model miners {
+  id                       Int      @id @default(autoincrement())
+  serial_number            String
+  asset_tag                String
+  model_id                 Int
+  owner_company_id         Int
+  management_company_id    Int
+  current_position_id      Int      @unique
+  physical_condition       String
+  condition_note           String
+  is_scrap                 Boolean
+  maintenance_status       String
+  maintenance_started_at   DateTime
+  maintenance_completed_at DateTime
+  created_at               DateTime
+  updated_at               DateTime
+}
+
+model miner_work_sessions {
+  id            Int      @id @default(autoincrement())
+  miner_id      Int
+  technician_id Int
+  started_at    DateTime
+  ended_at      DateTime
+  notes         String
+}
+
+model miner_events {
+  id            Int      @id @default(autoincrement())
+  miner_id      Int
+  technician_id Int
+  event_type    String
+  occurred_at   DateTime
+  recorded_at   DateTime
+  details       String
+}
+
+model technicians {
+  id           Int    @id @default(autoincrement())
+  role         String
+  first_name   String
+  last_name    String
+  email        String
+  phone_number String
+}
