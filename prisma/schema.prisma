@@ -35,12 +35,18 @@ model can {
   building_id Int
   can_number  String
 }
+model pallets {
+  id           Int    @id @default(autoincrement())
+  site_id      Int
+  buildings_id Int
+  pallet_name  String
+}
 
 model positions {
-  id           Int @id @default(autoincrement())
-  can_id       Int
-  row_index    Int
-  column_index Int
+  id         Int @id @default(autoincrement())
+  can_id     Int
+  row_index  Int
+  slot_index Int
 }
 
 model miner_model {
