@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -12,92 +7,218 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  ADMIN
+  MANAGER
+  TECHNICIAN
+  VIEWER
+}
+
+enum LocationKind {
+  DEPLOYMENT_SLOT
+  PALLET
+  STAGING
+  REPAIR
+}
+
+enum MovementReason {
+  INITIAL_REGISTRATION
+  DEPLOYMENT
+  READY_FOR_DEPLOYMENT
+  REPAIR
+  RELOCATION
+}
+
 model companies {
   id          Int     @id @default(autoincrement())
   name        String
   description String?
+
+  owned_miners   miners[] @relation("MinerOwner")
+  managed_miners miners[] @relation("MinerManager")
 }
 
 model sites {
   id          Int     @id @default(autoincrement())
   name        String
   description String?
+  is_active   Boolean @default(true)
+
+  buildings        buildings[]
+  locations        locations[]
+  user_assignments user_sites[]
 }
 
 model buildings {
-  id              Int @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   site_id         Int
   building_number Int
+  is_active       Boolean @default(true)
+
+  site      sites       @relation(fields: [site_id], references: [id], onDelete: Restrict)
+  cans      can[]
+  locations locations[]
+
+  @@unique([site_id, building_number])
 }
 
 model can {
-  id          Int    @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   building_id Int
   can_number  String
-}
-model pallets {
-  id           Int    @id @default(autoincrement())
-  site_id      Int
-  buildings_id Int
-  pallet_name  String
+  is_active   Boolean @default(true)
+
+  building  buildings   @relation(fields: [building_id], references: [id], onDelete: Restrict)
+  locations locations[]
+
+  @@unique([building_id, can_number])
 }
 
-model positions {
-  id         Int @id @default(autoincrement())
-  can_id     Int
-  row_index  Int
-  slot_index Int
+// Every destination has one location ID.
+// Deployment slots have coordinates.
+// Pallets, staging, and repair areas can hold multiple miners.
+model locations {
+  id          Int          @id @default(autoincrement())
+  site_id     Int
+  building_id Int?
+  can_id      Int?
+  kind        LocationKind
+  code        String
+  name        String
+  row_index   Int?
+  slot_index  Int?
+  is_active   Boolean      @default(true)
+
+  site     sites      @relation(fields: [site_id], references: [id], onDelete: Restrict)
+  building buildings? @relation(fields: [building_id], references: [id], onDelete: Restrict)
+  can      can?       @relation(fields: [can_id], references: [id], onDelete: Restrict)
+
+  current_miners miners[] @relation("MinerCurrentLocation")
+
+  // Used only to enforce exclusive deployment-slot occupancy.
+  slot_occupant miners? @relation("MinerOccupiedSlot")
+
+  movements_from miner_movements[] @relation("MovementFrom")
+  movements_to   miner_movements[] @relation("MovementTo")
+
+  @@unique([site_id, code])
+  @@unique([can_id, row_index, slot_index])
+  @@index([site_id, kind, is_active])
 }
 
 model miner_model {
-  id           Int    @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
   manufacturer String
   name         String
-  variant      String
+  variant      String?
+
+  miners miners[]
 }
 
 model miners {
-  id                       Int      @id @default(autoincrement())
-  serial_number            String
-  asset_tag                String
-  model_id                 Int
-  owner_company_id         Int
-  management_company_id    Int
-  current_position_id      Int      @unique
-  physical_condition       String
-  condition_note           String
-  is_scrap                 Boolean
-  maintenance_status       String
-  maintenance_started_at   DateTime
-  maintenance_completed_at DateTime
-  created_at               DateTime
-  updated_at               DateTime
+  id                    Int     @id @default(autoincrement())
+  serial_number         String  @unique
+  asset_tag             String?
+  model_id              Int?
+  owner_company_id      Int
+  management_company_id Int
+
+  current_location_id Int?
+
+  // Set to current_location_id for deployment slots.
+  // Must be null for shared locations.
+  occupied_slot_id Int? @unique
+
+  // Incremented on each move to detect stale submissions.
+  version Int @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  model miner_model? @relation(fields: [model_id], references: [id], onDelete: Restrict)
+
+  owner companies @relation("MinerOwner", fields: [owner_company_id], references: [id], onDelete: Restrict)
+
+  manager companies @relation("MinerManager", fields: [management_company_id], references: [id], onDelete: Restrict)
+
+  current_location locations? @relation("MinerCurrentLocation", fields: [current_location_id], references: [id], onDelete: Restrict)
+
+  occupied_slot locations? @relation("MinerOccupiedSlot", fields: [occupied_slot_id], references: [id], onDelete: Restrict)
+
+  movements miner_movements[]
+
+  @@index([current_location_id])
 }
 
-model miner_work_sessions {
-  id            Int      @id @default(autoincrement())
-  miner_id      Int
-  technician_id Int
-  started_at    DateTime
-  ended_at      DateTime
-  notes         String
+model users {
+  id         Int      @id @default(autoincrement())
+  role       UserRole @default(TECHNICIAN)
+  first_name String
+  last_name  String
+  email      String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  site_assignments user_sites[]
+  movements        miner_movements[]
+  audit_entries    audit_log[]
 }
 
-model miner_events {
-  id            Int      @id @default(autoincrement())
-  miner_id      Int
-  technician_id Int
-  event_type    String
-  occurred_at   DateTime
-  recorded_at   DateTime
-  details       String
+model user_sites {
+  user_id Int
+  site_id Int
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  site sites @relation(fields: [site_id], references: [id], onDelete: Restrict)
+
+  @@id([user_id, site_id])
+  @@index([site_id])
 }
 
-model technicians {
-  id           Int    @id @default(autoincrement())
-  role         String
-  first_name   String
-  last_name    String
-  email        String
-  phone_number String
+model miner_movements {
+  id               Int            @id @default(autoincrement())
+  miner_id         Int
+  recorded_by_id   Int
+  from_location_id Int?
+  to_location_id   Int
+  reason           MovementReason
+  notes            String?
+
+  occurred_at DateTime @default(now())
+  recorded_at DateTime @default(now())
+
+  // The client reuses this UUID when retrying one submission.
+  submission_key String @unique @db.Uuid
+
+  miner miners @relation(fields: [miner_id], references: [id], onDelete: Restrict)
+
+  recorded_by users @relation(fields: [recorded_by_id], references: [id], onDelete: Restrict)
+
+  from_location locations? @relation("MovementFrom", fields: [from_location_id], references: [id], onDelete: Restrict)
+
+  to_location locations @relation("MovementTo", fields: [to_location_id], references: [id], onDelete: Restrict)
+
+  @@index([miner_id, occurred_at, id])
+  @@index([recorded_at, id])
+  @@index([from_location_id])
+  @@index([to_location_id])
+}
+
+model audit_log {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+
+  user_id Int?
+  action  String
+
+  entity_type String
+  entity_id   Int
+
+  // Store structured before/after values and the explanation.
+  details Json?
+
+  user users? @relation(fields: [user_id], references: [id], onDelete: Restrict)
+
+  @@index([user_id, created_at])
+  @@index([entity_type, entity_id, created_at])
 }
