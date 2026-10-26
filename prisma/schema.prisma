@@ -60,6 +60,7 @@ model buildings {
   locations locations[]
 
   @@unique([site_id, building_number])
+  @@unique([id, site_id])
 }
 
 model can {
@@ -72,6 +73,7 @@ model can {
   locations locations[]
 
   @@unique([building_id, can_number])
+  @@unique([id, building_id])
 }
 
 // Every destination has one location ID.
@@ -90,8 +92,8 @@ model locations {
   is_active   Boolean      @default(true)
 
   site     sites      @relation(fields: [site_id], references: [id], onDelete: Restrict)
-  building buildings? @relation(fields: [building_id], references: [id], onDelete: Restrict)
-  can      can?       @relation(fields: [can_id], references: [id], onDelete: Restrict)
+  building buildings? @relation(fields: [building_id, site_id], references: [id, site_id], onUpdate: Restrict, onDelete: Restrict)
+  can      can?       @relation(fields: [can_id, building_id], references: [id, building_id], onUpdate: Restrict, onDelete: Restrict)
 
   current_miners miners[] @relation("MinerCurrentLocation")
 
