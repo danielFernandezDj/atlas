@@ -1,0 +1,203 @@
+.atlas-registration-dialog {
+  width: min(700px, calc(100vw - 32px));
+}
+.atlas-add-description {
+  font-size: 12px;
+  line-height: 1.8;
+  margin-top: 8px;
+}
+.atlas-add-demo-label {
+  font-size: 9px;
+  color: var(--atlas-blue);
+  margin: 12px 0 20px;
+}
+.atlas-add-loading {
+  padding: 30px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.atlas-add-form > fieldset {
+  gap: 23px;
+}
+.atlas-add-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.atlas-add-section + .atlas-add-section {
+  padding-top: 21px;
+  border-top: 1px solid var(--border);
+}
+.atlas-add-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.atlas-add-section h3 > span:first-child {
+  color: var(--atlas-blue);
+  font-size: 10px;
+  font-family: var(--font-mono), monospace;
+}
+.atlas-add-section h3 > .atlas-muted {
+  font-weight: 400;
+  font-size: 10px;
+}
+.atlas-add-form input:not([type="radio"]) {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 11px;
+  font-size: 12px;
+  margin-top: 8px;
+  background: var(--background);
+  color: var(--foreground);
+}
+.atlas-add-form input[aria-invalid="true"] {
+  border-color: var(--atlas-red);
+}
+.atlas-add-form fieldset:disabled {
+  opacity: 0.65;
+}
+.atlas-required {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.atlas-add-help {
+  font-size: 10px;
+  line-height: 1.8;
+  color: var(--muted-foreground);
+}
+.atlas-add-placement {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.atlas-add-placement > label {
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 8px;
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+}
+.atlas-add-placement > label.is-selected {
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+  background: color-mix(in oklch, var(--primary) 5%, var(--card));
+}
+.atlas-add-placement input {
+  accent-color: var(--primary);
+  flex-shrink: 0;
+}
+.atlas-add-placement strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.atlas-add-placement small {
+  display: block;
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+  margin-top: 3px;
+  font-weight: 400;
+}
+.atlas-add-location-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--muted) 15%, var(--card));
+}
+.atlas-add-success {
+  text-align: center;
+}
+.atlas-add-success-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--atlas-green) 9%, var(--card));
+  color: var(--atlas-green);
+  margin: 0 auto 20px;
+}
+.atlas-add-success h2 {
+  margin-top: 9px;
+  outline: none;
+}
+.atlas-added-serial {
+  font-family: var(--font-mono), monospace;
+  color: var(--atlas-blue);
+  font-size: 16px;
+  overflow-wrap: anywhere;
+  margin-top: 14px;
+}
+.atlas-add-success > .atlas-muted {
+  font-size: 11px;
+  margin-top: 7px;
+}
+.atlas-add-success dl {
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  background: var(--muted);
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.atlas-add-success dt {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-bottom: 6px;
+}
+.atlas-add-success dd {
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.atlas-add-result-note {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.8;
+  margin: 16px 0;
+}
+.atlas-add-success-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+@media (max-width: 650px) {
+  .atlas-registration-dialog {
+    padding: 22px 18px;
+  }
+  .atlas-add-form .atlas-two-fields,
+  .atlas-add-placement {
+    grid-template-columns: 1fr;
+  }
+  .atlas-add-location-fields {
+    padding: 12px;
+  }
+  .atlas-add-form .atlas-move-footer {
+    flex-direction: column-reverse;
+    gap: 18px;
+  }
+  .atlas-add-form .atlas-move-footer > button {
+    width: 100%;
+  }
+}

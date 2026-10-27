@@ -69,6 +69,9 @@ model can {
   can_number  String
   is_active   Boolean @default(true)
 
+  row_count  Int
+  slot_per_row Int
+
   building  buildings   @relation(fields: [building_id], references: [id], onDelete: Restrict)
   locations locations[]
 
@@ -82,18 +85,20 @@ model can {
 model locations {
   id          Int          @id @default(autoincrement())
   site_id     Int
-  building_id Int?
-  can_id      Int?
+  building_id Int
+  can_id      Int
   kind        LocationKind
   code        String
   name        String
+
   row_index   Int?
   slot_index  Int?
+
   is_active   Boolean      @default(true)
 
   site     sites      @relation(fields: [site_id], references: [id], onDelete: Restrict)
   building buildings? @relation(fields: [building_id, site_id], references: [id, site_id], onUpdate: Restrict, onDelete: Restrict)
-  can      can?       @relation(fields: [can_id, building_id], references: [id, building_id], onUpdate: Restrict, onDelete: Restrict)
+  can      can       @relation(fields: [can_id, building_id], references: [id, building_id], onUpdate: Restrict, onDelete: Restrict)
 
   current_miners miners[] @relation("MinerCurrentLocation")
 
