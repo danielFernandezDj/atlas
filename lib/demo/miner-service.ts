@@ -1,3 +1,9 @@
+import {
+  buildCells,
+  countCells,
+  mapWarnings,
+  type SiteMapService,
+} from "../site-map/model"
 /** In-memory demo adapter only. Never import this module from a production data adapter.
  * Capability choices below are explicit fixtures, not a role-based authorization policy.
  */
@@ -282,8 +288,63 @@ export function createDemoMinerService({
       destinations: pageOf(available, query.page, query.page_size),
     })
   }
-  const service: MinerService = {
+  const service: MinerService & SiteMapService = {
     mode: "demo",
+    async getSiteMapOverview(siteId, signal) {
+      await delay(signal)
+      const site = sites.find((item) => item.id === siteId)
+      if (!site)
+        throw new MinerServiceError(
+          "NOT_FOUND",
+          "Site configuration is not available."
+        )
+      return structuredClone({
+        site,
+        buildings: buildings
+          .filter((building) => building.site_id === siteId)
+          .map((building) => ({
+            building,
+            cans: cans
+              .filter((can) => can.building_id === building.id)
+              .map((can) => {
+                const context = { site, building, can },
+                  records = locations.filter(
+                    (location) => location.can_id === can.id
+                  )
+                return {
+                  can,
+                  counts: countCells(buildCells(context, records, miners)),
+                  sharedMiners: miners.filter(
+                    (miner) =>
+                      miner.current_location?.can_id === can.id &&
+                      miner.current_location.kind !== "DEPLOYMENT_SLOT"
+                  ).length,
+                  warnings: mapWarnings(context, records),
+                }
+              }),
+          })),
+      })
+    },
+    async getCanMap(canId, signal) {
+      await delay(signal)
+      const can = cans.find((item) => item.id === canId)
+      const building = buildings.find((item) => item.id === can?.building_id)
+      const site = sites.find((item) => item.id === building?.site_id)
+      if (!can || !building || !site)
+        throw new MinerServiceError(
+          "NOT_FOUND",
+          "Can configuration is not available."
+        )
+      return structuredClone({
+        site,
+        building,
+        can,
+        locations: locations.filter((location) => location.can_id === canId),
+        miners: miners.filter(
+          (miner) => miner.current_location?.can_id === canId
+        ),
+      })
+    },
     async searchMiners(query: MinerQuery, signal) {
       await delay(signal)
       const search = query.search.trim().toLocaleLowerCase()

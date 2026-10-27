@@ -25,11 +25,12 @@ import { AddMinerForm } from "./technician/add-miner-form"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
 import { MovementHistory } from "./technician/movement-history"
 import { MinerWorkspace } from "./technician/miner-workspace"
+import { SiteMap } from "./technician/site-map"
 import { SiteOverview } from "./technician/site-overview"
 import { WeatherOutlook } from "./technician/weather-outlook"
 import "./technician/technician-dashboard.css"
 
-type View = "dashboard" | "miners"
+type View = "dashboard" | "miners" | "site-map"
 type Overlay = "actions" | "account" | null
 
 function WorkspaceClock() {
@@ -140,9 +141,11 @@ export function TechnicianDashboard() {
             <span>Dashboard</span>
           </button>
           <button
-            title="Site map — coming later"
-            aria-label="Site map — coming later"
-            disabled
+            title="Site map"
+            aria-label="Site map"
+            aria-current={view === "site-map" ? "page" : undefined}
+            className={view === "site-map" ? "is-active" : ""}
+            onClick={() => navigate("site-map")}
           >
             <Map />
             <span>Site map</span>
@@ -222,12 +225,18 @@ export function TechnicianDashboard() {
             <div>
               <p className="atlas-eyebrow">ATLAS / OPERATIONS / DEMO</p>
               <h1 ref={headingRef} tabIndex={-1}>
-                {view === "dashboard" ? "Site dashboard" : "Miner workspace"}
+                {view === "dashboard"
+                  ? "Site dashboard"
+                  : view === "site-map"
+                    ? "Site map"
+                    : "Miner workspace"}
               </h1>
               <p className="atlas-muted">
                 {view === "dashboard"
                   ? `Here’s what’s happening at ${site.name} today.`
-                  : "Find a miner, record its next move, and review your activity."}
+                  : view === "site-map"
+                    ? "Explore physical placement, find available slots, and inspect miners."
+                    : "Find a miner, record its next move, and review your activity."}
               </p>
             </div>
             <div className="atlas-heading-meta">
@@ -257,6 +266,16 @@ export function TechnicianDashboard() {
                 </span>
               </footer>
             </>
+          ) : view === "site-map" ? (
+            <SiteMap
+              key={`${activeSiteId}-${minerSession}`}
+              scope={{
+                id: demoSites.findIndex((item) => item.id === activeSiteId) + 1,
+                name: site.name,
+              }}
+              service={minerService}
+              onInspect={(serial) => navigate("miners", serial)}
+            />
           ) : (
             <MinerWorkspace
               key={`${activeSiteId}-${minerSession}`}
