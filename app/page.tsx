@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 import { AuthPanel } from "@/components/auth-panel"
 import { auth } from "@/lib/auth/server"
 import { prisma } from "@/lib/prisma"
@@ -42,6 +44,12 @@ export default async function Page() {
             </p>
           </div>
         </div>
+        <Link
+          href="/technician"
+          className="rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground"
+        >
+          Open Technician demo
+        </Link>
         <AuthPanel
           user={user ? { name: user.name, email: user.email } : null}
         />
