@@ -109,7 +109,8 @@ model locations {
   movements_to   miner_movements[] @relation("MovementTo")
 
   @@unique([site_id, code])
-  @@unique([can_id, row_index, slot_index])
+  @@unique([can_id, row_index, slot_index]) \
+   
   @@index([site_id, kind, is_active])
 }
 
