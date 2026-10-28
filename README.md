@@ -31,3 +31,22 @@ To use the components in your app, import them as follows:
 ```tsx
 import { Button } from "@/components/ui/button";
 ```
+
+## Vercel builds
+
+Use `pnpm run build` as the Build Command. It generates Prisma Client with the
+project's `prisma7.config.ts` before running Next.js. The install hook also runs
+generation, but the build does not depend on an install hook or cached artifacts.
+
+The generator output directory is `lib/generated/prisma`; Prisma creates
+`client.ts` inside it, matching the import in `lib/prisma.ts`. Generated files
+remain ignored by Git. Changing this generator path does not change database
+tables and does not require a migration.
+
+Configure `DATABASE_URL`, `NEON_AUTH_BASE_URL`, and `NEON_AUTH_COOKIE_SECRET` in
+the appropriate Vercel deployment environment. Keep secrets out of the repo.
+If a Vercel project overrides the Build Command, it must still run
+`pnpm run build` rather than invoking `next build` directly.
+
+Next.js and its ESLint configuration are pinned to the patched 16.4.1 release.
+Keep `pnpm-lock.yaml` committed so Vercel installs those exact resolved packages.
