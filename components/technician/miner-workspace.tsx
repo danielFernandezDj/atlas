@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import {
-  ArrowRight,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -10,7 +9,6 @@ import {
   Cpu,
   History,
   LoaderCircle,
-  MapPin,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -32,6 +30,7 @@ import {
   displayTime,
   isLocationActive,
 } from "@/lib/miners/contracts"
+import { MinerRecord } from "./miner-record/miner-record"
 import { MinerMoveDialog } from "./miner-move-dialog"
 import "./miner-workspace.css"
 
@@ -173,6 +172,7 @@ export function MinerWorkspace({
     page_size: 5,
   })
   const [historyPage, setHistoryPage] = useState(1)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState("")
   const [detailRefresh, setDetailRefresh] = useState(0)
@@ -270,7 +270,10 @@ export function MinerWorkspace({
           )
       })
       .finally(() => {
-        if (!controller.signal.aborted) setDetailLoading(false)
+        if (!controller.signal.aborted) {
+          setDetailLoading(false)
+          setHistoryLoading(false)
+        }
       })
     return () => controller.abort()
   }, [service, selectedId, historyPage, detailRefresh])
@@ -541,7 +544,7 @@ export function MinerWorkspace({
       </section>
       <dialog
         ref={detailDialog}
-        className="atlas-dialog atlas-miner-details-dialog"
+        className="atlas-dialog atlas-miner-details-dialog atlas-record-dialog"
         aria-labelledby="selected-miner-dialog-title"
         onCancel={(event) => {
           event.preventDefault()
@@ -599,240 +602,91 @@ export function MinerWorkspace({
               </button>
             </div>
           ) : !detail ? null : (
-            <>
-              <div className="atlas-selected-header">
-                <div>
-                  <h2>
-                    <CopySerial serial={detail.miner.serial_number} />
-                  </h2>
-                  <p className="atlas-muted">{modelLabel(detail.miner)}</p>
-                </div>
-                <div className="atlas-selected-actions">
-                  <button
-                    className="atlas-refresh-miner"
-                    onClick={refreshDetail}
-                    aria-label="Refresh selected miner"
-                  >
-                    <RefreshCw size={15} />
-                  </button>
-                  {detail.capabilities.can_move ? (
-                    <Button
-                      className="min-h-11 rounded-md px-5"
-                      onClick={() => setMoveOpen(true)}
-                    >
-                      Move miner
-                      <ArrowRight size={15} />
-                    </Button>
-                  ) : (
-                    <span className="atlas-chip">View only</span>
-                  )}
-                </div>
-              </div>
-              {!detail.capabilities.can_move && (
-                <p className="atlas-permission-note">
-                  {detail.capabilities.explanation ??
-                    "Movement is not available for this miner."}
-                </p>
-              )}
-              <div className="atlas-miner-detail-grid">
-                <article className="atlas-card atlas-identity-card">
-                  <h3>
-                    <Cpu size={17} />
-                    Identity & custody
-                  </h3>
-                  <dl>
+            <MinerRecord
+              key={detail.miner.id}
+              detail={detail}
+              demo={service.mode === "demo"}
+              serial={<CopySerial serial={detail.miner.serial_number} />}
+              onRefresh={refreshDetail}
+              onMove={() => setMoveOpen(true)}
+              history={
+                <article className="atlas-card atlas-miner-timeline">
+                  <div className="atlas-section-header">
                     <div>
-                      <dt>Serial number</dt>
-                      <dd className="atlas-full-serial">
-                        {detail.miner.serial_number}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Asset tag</dt>
-                      <dd>{detail.miner.asset_tag ?? "Not assigned"}</dd>
-                    </div>
-                    <div>
-                      <dt>Manufacturer</dt>
-                      <dd>
-                        {detail.miner.model?.manufacturer ?? "Not assigned"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Model</dt>
-                      <dd>
-                        {detail.miner.model?.name ?? "Model not assigned"}
-                        {detail.miner.model?.variant
-                          ? ` · ${detail.miner.model.variant}`
-                          : ""}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Owner</dt>
-                      <dd>{detail.miner.owner.name}</dd>
-                    </div>
-                    <div>
-                      <dt>Managed by</dt>
-                      <dd>{detail.miner.manager.name}</dd>
-                    </div>
-                  </dl>
-                  <footer>
-                    <span>Created {displayTime(detail.miner.created_at)}</span>
-                    <span>Updated {displayTime(detail.miner.updated_at)}</span>
-                    <span>
-                      Central Time · Record version {detail.miner.version}
-                    </span>
-                  </footer>
-                </article>
-                <article className="atlas-card atlas-location-card">
-                  <h3>
-                    <MapPin size={17} />
-                    Current physical location
-                  </h3>
-                  {detail.miner.current_location ? (
-                    <>
-                      <span className="atlas-location-kind">
-                        {kindLabels[detail.miner.current_location.kind]}
-                      </span>
-                      <ol className="atlas-location-path">
-                        <li>
-                          <span>Site</span>
-                          <strong>
-                            {detail.miner.current_location.site.name}
-                          </strong>
-                        </li>
-                        <li>
-                          <span>Building</span>
-                          <strong>
-                            {detail.miner.current_location.building
-                              ? `Building ${detail.miner.current_location.building.building_number}`
-                              : "Building unavailable"}
-                          </strong>
-                        </li>
-                        <li>
-                          <span>Can</span>
-                          <strong>
-                            {detail.miner.current_location.can.can_number}
-                          </strong>
-                        </li>
-                        <li>
-                          <span>Location</span>
-                          <strong>{detail.miner.current_location.name}</strong>
-                          <code>{detail.miner.current_location.code}</code>
-                        </li>
-                      </ol>
-                      {detail.miner.current_location.kind ===
-                        "DEPLOYMENT_SLOT" && (
-                        <p className="atlas-coordinate-note">
-                          Row{" "}
-                          {detail.miner.current_location.row_index ?? "not set"}{" "}
-                          · Slot{" "}
-                          {detail.miner.current_location.slot_index ??
-                            "not set"}
-                          <span>Coordinate values shown as stored.</span>
-                        </p>
-                      )}
-                      {!isLocationActive(detail.miner.current_location) && (
-                        <p className="atlas-inactive-note">
-                          This location or its hierarchy is inactive. The
-                          existing assignment remains visible; inactive
-                          destinations are excluded from new moves.
-                        </p>
-                      )}
-                      {detail.miner.current_location.kind === "REPAIR" && (
-                        <p className="atlas-coordinate-note">
-                          A physical repair-area assignment does not indicate a
-                          diagnosis or repair status.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="atlas-unassigned">
-                      <MapPin size={25} />
-                      <strong>Location not assigned</strong>
-                      <p>
-                        This miner has no current physical location recorded.
+                      <h3>
+                        <History size={17} />
+                        Movement history
+                      </h3>
+                      <p className="atlas-muted">
+                        Physical movements for this miner · Central Time
                       </p>
                     </div>
-                  )}
-                </article>
-              </div>
-              <article className="atlas-card atlas-miner-timeline">
-                <div className="atlas-section-header">
-                  <div>
-                    <h3>
-                      <History size={17} />
-                      Movement history
-                    </h3>
-                    <p className="atlas-muted">
-                      Physical movements for this miner · Central Time
-                    </p>
+                    <span className="atlas-chip">
+                      {history.total} record{history.total === 1 ? "" : "s"}
+                    </span>
                   </div>
-                  <span className="atlas-chip">
-                    {history.total} record{history.total === 1 ? "" : "s"}
-                  </span>
-                </div>
-                {!history.items.length ? (
-                  <div className="atlas-miner-state">
-                    <History size={24} />
-                    <h3>No movement history yet</h3>
-                    <p>Recorded movements will appear here.</p>
-                  </div>
-                ) : (
-                  <ol>
-                    {history.items.map((movement) => (
-                      <li key={movement.id}>
-                        <span className="atlas-timeline-dot" />
-                        <div className="atlas-timeline-top">
-                          <h4>{reasonLabels[movement.reason]}</h4>
-                          <time dateTime={movement.occurred_at}>
-                            {displayTime(movement.occurred_at)}
-                          </time>
-                        </div>
-                        <p className="atlas-timeline-actor">
-                          Recorded by {movement.recorded_by.name}
-                        </p>
-                        <div className="atlas-timeline-route">
-                          <div>
-                            <span>From</span>
-                            <p>
-                              {movement.from_location
-                                ? locationPath(movement.from_location)
-                                : "Source location not recorded"}
-                            </p>
+                  {!history.items.length ? (
+                    <div className="atlas-miner-state">
+                      <History size={24} />
+                      <h3>No movement history yet</h3>
+                      <p>Recorded movements will appear here.</p>
+                    </div>
+                  ) : (
+                    <ol>
+                      {history.items.map((movement) => (
+                        <li key={movement.id}>
+                          <span className="atlas-timeline-dot" />
+                          <div className="atlas-timeline-top">
+                            <h4>{reasonLabels[movement.reason]}</h4>
+                            <time dateTime={movement.occurred_at}>
+                              {displayTime(movement.occurred_at)}
+                            </time>
                           </div>
-                          <div>
-                            <span>To</span>
-                            <p>{locationPath(movement.to_location)}</p>
-                          </div>
-                        </div>
-                        {movement.notes && (
-                          <p className="atlas-movement-notes">
-                            {movement.notes}
+                          <p className="atlas-timeline-actor">
+                            Recorded by {movement.recorded_by.name}
                           </p>
-                        )}
-                        <p className="atlas-recorded-time">
-                          Occurred {displayTime(movement.occurred_at)} ·
-                          Recorded {displayTime(movement.recorded_at)}
-                        </p>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-                <Pagination
-                  label="movement history"
-                  page={historyPage}
-                  total={history.total}
-                  pageSize={5}
-                  loading={detailLoading}
-                  onPage={(next) => {
-                    setDetailLoading(true)
-                    setDetailError("")
-                    setDetail(null)
-                    setHistoryPage(next)
-                  }}
-                />
-              </article>
-            </>
+                          <div className="atlas-timeline-route">
+                            <div>
+                              <span>From</span>
+                              <p>
+                                {movement.from_location
+                                  ? locationPath(movement.from_location)
+                                  : "Source location not recorded"}
+                              </p>
+                            </div>
+                            <div>
+                              <span>To</span>
+                              <p>{locationPath(movement.to_location)}</p>
+                            </div>
+                          </div>
+                          {movement.notes && (
+                            <p className="atlas-movement-notes">
+                              {movement.notes}
+                            </p>
+                          )}
+                          <p className="atlas-recorded-time">
+                            Occurred {displayTime(movement.occurred_at)} ·
+                            Recorded {displayTime(movement.recorded_at)}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  <Pagination
+                    label="movement history"
+                    page={historyPage}
+                    total={history.total}
+                    pageSize={5}
+                    loading={historyLoading}
+                    onPage={(next) => {
+                      setHistoryLoading(true)
+                      setDetailError("")
+                      setHistoryPage(next)
+                    }}
+                  />
+                </article>
+              }
+            />
           )}
         </div>
       </dialog>
