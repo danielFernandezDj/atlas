@@ -15,10 +15,10 @@ const dataUrl = (source) =>
   `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`
 const contractsUrl = dataUrl(await compile("../lib/miners/contracts.ts"))
 const { locationPath } = await import(contractsUrl)
-const adapterSource = (await compile("../lib/demo/miner-service.ts")).replace(
-  '"../miners/contracts"',
-  JSON.stringify(contractsUrl)
-)
+const mapUrl = dataUrl(await compile("../lib/site-map/model.ts"))
+const adapterSource = (await compile("../lib/demo/miner-service.ts"))
+  .replace('"../miners/contracts"', JSON.stringify(contractsUrl))
+  .replace('"../site-map/model"', JSON.stringify(mapUrl))
 const { createDemoMinerService } = await import(dataUrl(adapterSource))
 const create = () => createDemoMinerService({ latency: 0 })
 const query = { search: "", site_id: null, kind: "", page: 1, page_size: 6 }
