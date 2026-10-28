@@ -942,3 +942,181 @@
     margin: 0;
   }
 }
+/* The hashrate summary stays above the independently scrollable log. */
+.atlas-telemetry-log {
+  display: grid;
+  gap: 14px;
+}
+.atlas-log-hashrate {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  margin-bottom: 14px;
+}
+.atlas-telemetry-log .atlas-log-hashrate {
+  margin-bottom: 0;
+}
+.atlas-log-hashrate > div > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.atlas-log-hashrate strong {
+  display: block;
+  font-size: 27px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  margin-top: 5px;
+}
+.atlas-log-hashrate small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+  margin-left: 7px;
+  letter-spacing: 0;
+}
+.atlas-log-hashrate > p {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  text-align: right;
+}
+.atlas-device-log {
+  overflow: hidden;
+  box-shadow: none;
+}
+.atlas-device-log header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.atlas-device-log h3 {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+.atlas-device-log header p,
+.atlas-device-log footer {
+  font-size: 10px;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+.atlas-device-log header p {
+  margin-top: 5px;
+}
+.atlas-device-log footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+.atlas-log-console {
+  max-height: min(460px, 45svh);
+  overflow: auto;
+  background: color-mix(in srgb, var(--background) 70%, var(--card));
+  padding: 8px 0;
+}
+.atlas-log-console:focus-visible {
+  outline: 2px solid var(--atlas-blue);
+  outline-offset: -2px;
+}
+.atlas-log-console ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.atlas-log-console li {
+  display: grid;
+  grid-template-columns: 68px 44px 78px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 11px 20px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+.atlas-log-console time,
+.atlas-log-component {
+  color: var(--muted-foreground);
+}
+.atlas-log-console strong {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--atlas-blue);
+}
+.atlas-log-console p {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.atlas-log-console [data-level="ERROR"] {
+  background: color-mix(in srgb, #cc6870 6%, transparent);
+}
+.atlas-log-console [data-level="ERROR"] strong,
+.atlas-log-console [data-level="ERROR"] p {
+  color: #cc6870;
+}
+.atlas-log-console [data-level="WARN"] strong {
+  color: #b08736;
+}
+.atlas-log-empty {
+  padding: 35px 20px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.atlas-record-tabs {
+  overflow-x: auto;
+}
+@media (max-width: 650px) {
+  .atlas-record-tabs {
+    gap: 15px;
+  }
+  .atlas-record-tabs button {
+    flex-shrink: 0;
+  }
+  .atlas-record-tabs button > svg {
+    width: 13px;
+  }
+  .atlas-log-hashrate {
+    padding: 13px;
+    gap: 10px;
+  }
+  .atlas-log-hashrate > p {
+    font-size: 10px;
+    max-width: 140px;
+  }
+  .atlas-log-hashrate strong {
+    font-size: 23px;
+  }
+  .atlas-device-log header {
+    padding: 14px;
+    align-items: flex-start;
+  }
+  .atlas-log-console li {
+    grid-template-columns: 60px 38px minmax(0, 1fr);
+    gap: 5px 9px;
+    padding: 10px 14px;
+    font-size: 10px;
+  }
+  .atlas-log-console li > p {
+    grid-column: 1/-1;
+  }
+  .atlas-device-log footer {
+    padding: 10px 14px;
+  }
+}

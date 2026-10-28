@@ -181,3 +181,38 @@ test("absent board entries do not become a confirmed zero or complete total", as
   assert.equal(totals.powerW, null)
   assert.ok(totals.reportedHashrateThs > 0)
 })
+
+test("sample logs align with board conditions and snapshot timestamps", async () => {
+  for (const scenario of [
+    "healthy",
+    "degraded",
+    "offline",
+    "partial",
+    "stale",
+  ]) {
+    const data = await snapshot(scenario)
+    assert.ok(data.logs.length > 0)
+    assert.equal(data.logs.at(-1).timestamp, data.capturedAt)
+    assert.ok(
+      data.logs.every(
+        (entry, index) =>
+          Date.parse(entry.timestamp) <= Date.parse(data.capturedAt) &&
+          (index === 0 || entry.timestamp >= data.logs[index - 1].timestamp)
+      )
+    )
+    const board2 = data.logs.find((entry) => entry.component === "board-2")
+    assert.equal(
+      board2.level,
+      scenario === "degraded"
+        ? "ERROR"
+        : scenario === "partial"
+          ? "WARN"
+          : "INFO"
+    )
+    if (scenario === "partial")
+      assert.match(board2.message, /condition unknown/)
+    if (scenario === "offline") assert.match(board2.message, /Offline sample/)
+    if (scenario === "degraded")
+      assert.match(board2.message, /ASIC detection failed/)
+  }
+})

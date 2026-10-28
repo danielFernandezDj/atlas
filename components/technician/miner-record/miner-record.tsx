@@ -12,6 +12,7 @@ import {
   ArrowRight,
   ExternalLink,
   History,
+  ScrollText,
   Info,
   LoaderCircle,
   MapPin,
@@ -39,12 +40,14 @@ import {
   type DemoTelemetryScenario,
 } from "@/lib/demo/miner-telemetry"
 import { TelemetryOverview } from "./telemetry-overview"
+import { TelemetryLog, LogHashrate } from "./telemetry-log"
 import { TelemetrySettings } from "./telemetry-settings"
 import "./miner-record.css"
 
-type Tab = "overview" | "settings" | "history"
+type Tab = "overview" | "log" | "settings" | "history"
 const tabs: { id: Tab; label: string; icon: typeof Activity }[] = [
   { id: "overview", label: "Overview", icon: Activity },
+  { id: "log", label: "Log", icon: ScrollText },
   { id: "settings", label: "Settings", icon: Settings2 },
   { id: "history", label: "Movement history", icon: History },
 ]
@@ -355,54 +358,64 @@ export function MinerRecord({
                     reported; temperatures and fan readings are unavailable.
                   </p>
                 )}
-                {tab === "settings" ? (
+                {tab === "log" ? (
+                  <TelemetryLog telemetry={telemetry} />
+                ) : tab === "settings" ? (
                   <TelemetrySettings telemetry={telemetry} />
                 ) : (
                   <TelemetryOverview telemetry={telemetry} />
                 )}
               </>
             ) : (
-              <div
-                className="atlas-telemetry-empty"
-                role={result.kind === "error" ? "alert" : "status"}
-              >
-                {result.kind === "loading" ? (
-                  <LoaderCircle size={25} className="atlas-spin" />
-                ) : (
-                  <Info size={25} />
+              <>
+                {tab === "log" && (
+                  <LogHashrate
+                    telemetry={null}
+                    loading={result.kind === "loading"}
+                  />
                 )}
-                <h3>
-                  {result.kind === "loading"
-                    ? "Loading telemetry preview…"
-                    : result.kind === "not-found"
-                      ? "Miner not found in VNish"
-                      : result.kind === "error"
-                        ? "Telemetry request failed"
-                        : "Telemetry unavailable"}
-                </h3>
-                <p>
-                  {result.kind === "loading"
-                    ? "Atlas identity, location, custody, and movement history remain independent of this read."
-                    : result.kind === "ready"
-                      ? ""
-                      : result.message}
-                </p>
-                {result.kind === "error" && (
+                <div
+                  className="atlas-telemetry-empty"
+                  role={result.kind === "error" ? "alert" : "status"}
+                >
+                  {result.kind === "loading" ? (
+                    <LoaderCircle size={25} className="atlas-spin" />
+                  ) : (
+                    <Info size={25} />
+                  )}
+                  <h3>
+                    {result.kind === "loading"
+                      ? "Loading telemetry preview…"
+                      : result.kind === "not-found"
+                        ? "Miner not found in VNish"
+                        : result.kind === "error"
+                          ? "Telemetry request failed"
+                          : "Telemetry unavailable"}
+                  </h3>
+                  <p>
+                    {result.kind === "loading"
+                      ? "Atlas identity, location, custody, and movement history remain independent of this read."
+                      : result.kind === "ready"
+                        ? ""
+                        : result.message}
+                  </p>
+                  {result.kind === "error" && (
+                    <button
+                      className="atlas-text-button"
+                      onClick={refreshTelemetry}
+                    >
+                      Retry telemetry preview
+                    </button>
+                  )}
                   <button
                     className="atlas-text-button"
-                    onClick={refreshTelemetry}
+                    onClick={() => setTab("history")}
                   >
-                    Retry telemetry preview
+                    <History size={14} />
+                    View movement history
                   </button>
-                )}
-                <button
-                  className="atlas-text-button"
-                  onClick={() => setTab("history")}
-                >
-                  <History size={14} />
-                  View movement history
-                </button>
-              </div>
+                </div>
+              </>
             )}
           </>
         )}

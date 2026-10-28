@@ -2,6 +2,7 @@ import type { Miner } from "../miners/contracts"
 import type {
   HashboardTelemetry,
   MinerTelemetryProvider,
+  MinerLogEntry,
   TelemetryResult,
 } from "../telemetry/contracts"
 
@@ -145,6 +146,78 @@ export class MockMinerTelemetryProvider implements MinerTelemetryProvider {
         }
       }
     )
+    const capturedAt =
+      scenario === "stale"
+        ? "2026-10-28T13:30:00.000Z"
+        : "2026-10-28T14:59:40.000Z"
+    const events: Omit<MinerLogEntry, "timestamp">[] = [
+      {
+        level: "INFO",
+        component: "system",
+        message: `Loaded synthetic telemetry profile for ${miner.model!.name}.`,
+      },
+      {
+        level: "INFO",
+        component: "config",
+        message: `Sample preset: ${profile.power} W / ${profile.ths} TH/s; automatic cooling target 70 °C.`,
+      },
+      ...boards.map((board): Omit<MinerLogEntry, "timestamp"> => ({
+        level:
+          board.state === "failed-asic"
+            ? "ERROR"
+            : board.state === "unknown"
+              ? "WARN"
+              : "INFO",
+        component: `board-${board.number}`,
+        message:
+          board.state === "failed-asic"
+            ? "ASIC detection failed: 0 chips detected. Reported output 0 TH/s."
+            : board.state === "unknown"
+              ? "Board reading unavailable in this partial sample; hardware condition unknown."
+              : board.state === "offline"
+                ? "Offline sample reports 0 TH/s; board temperature not available."
+                : `Reported output ${board.hashrateThs} TH/s; ${board.chipsDetected} ASIC chips detected.`,
+      })),
+      ...(scenario === "partial"
+        ? [
+            {
+              level: "WARN" as const,
+              component: "cooling",
+              message:
+                "Fan 3 reported stopped at 0 RPM. Fan 4 reading missing; no diagnosis inferred.",
+            },
+          ]
+        : [
+            {
+              level: "INFO" as const,
+              component: "cooling",
+              message:
+                scenario === "offline"
+                  ? "Fan readings unavailable in the offline sample."
+                  : "Four fan readings received; automatic cooling duty 65%.",
+            },
+          ]),
+      {
+        level: "INFO",
+        component: "pool",
+        message:
+          scenario === "offline"
+            ? "Pool connection state unknown in this offline sample."
+            : "Primary synthetic pool marked Active; backup pool marked Standby.",
+      },
+      {
+        level: "INFO",
+        component: "snapshot",
+        message:
+          "End of simulated snapshot. No miner connection or streaming log is active.",
+      },
+    ]
+    const logs: MinerLogEntry[] = events.map((event, index) => ({
+      ...event,
+      timestamp: new Date(
+        Date.parse(capturedAt) - (events.length - 1 - index) * 5000
+      ).toISOString(),
+    }))
     return {
       kind: "ready",
       telemetry: {
@@ -152,10 +225,7 @@ export class MockMinerTelemetryProvider implements MinerTelemetryProvider {
         minerId: miner.id,
         serialNumber: miner.serial_number,
         sampleAsOf,
-        capturedAt:
-          scenario === "stale"
-            ? "2026-10-28T13:30:00.000Z"
-            : "2026-10-28T14:59:40.000Z",
+        capturedAt,
         freshness: scenario === "stale" ? "stale" : "current-sample",
         state:
           scenario === "offline"
@@ -188,6 +258,7 @@ export class MockMinerTelemetryProvider implements MinerTelemetryProvider {
         })),
         fanDutyPercent: scenario === "offline" ? null : 65,
         psuModel: profile.psu,
+        logs,
         settings: {
           cooling: {
             minimumFans: 3,

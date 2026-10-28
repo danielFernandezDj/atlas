@@ -49,6 +49,12 @@ export type TelemetrySettings = {
     status: "Active" | "Standby" | "Unknown"
   }[]
 }
+export type MinerLogEntry = {
+  timestamp: string
+  level: "INFO" | "WARN" | "ERROR"
+  component: string
+  message: string
+}
 export type MinerTelemetry = {
   source: "mock-vnish" | "vnish"
   minerId: number
@@ -64,6 +70,8 @@ export type MinerTelemetry = {
   fans: FanTelemetry[]
   fanDutyPercent: number | null
   psuModel: string | null
+  /** Null: log source unavailable; empty array: no entries in this snapshot. */
+  logs: MinerLogEntry[] | null
   settings: TelemetrySettings
 }
 export type TelemetryResult =

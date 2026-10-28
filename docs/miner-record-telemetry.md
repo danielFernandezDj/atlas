@@ -31,3 +31,7 @@ Implement `MinerTelemetryProvider.getTelemetry(miner, signal)` in a future adapt
 ## Validation
 
 TypeScript, scoped ESLint, the existing miner/site-map/management suites, and focused telemetry tests cover numeric consistency, model profiles, null/zero handling, stale/offline states, read cancellation, and no inventory/history mutation. Interactive checks cover serial/asset-tag selection, supported identity/location/custody, existing movement save/version/history refresh, preview scenarios, read-only settings, disabled VNish access, accessible tabs, and desktop/tablet/mobile sizing.
+
+## Log tab
+
+The order is Overview → Log → Settings → Movement History. `telemetry-log.tsx` displays a compact hashrate summary above a scrollable, timestamped log snapshot. It derives hashrate from the same telemetry as Overview, retains partial/stale/unavailable distinctions, and keeps the summary visible while reading entries. Log levels have text labels as well as color. Mock messages reflect each sample's board/fan/pool conditions, with timestamps ending at the sample capture time. They are explicitly simulated, with no real connection or streaming claim. The normalized `logs` field accepts null for unavailable logs and an empty array for a snapshot containing no entries. A future provider must supply actual log entries separately from Atlas movement history.
