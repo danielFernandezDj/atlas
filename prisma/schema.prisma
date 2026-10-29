@@ -116,7 +116,6 @@ model miner_model {
   id           Int     @id @default(autoincrement())
   manufacturer String
   name         String
-  variant      String?
 
   miners miners[]
 }
