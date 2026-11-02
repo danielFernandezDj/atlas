@@ -21,6 +21,34 @@ enum LocationKind {
   REPAIR
 }
 
+enum HashboardPosition {
+  SLOT_1
+  SLOT_2
+  SLOT_3
+}
+
+enum RecordSource {
+  MANUAL
+  NETWORK
+  IMPORT
+  SYSTEM
+}
+
+enum ConditionKind {
+  UNKNOWN
+  GOOD
+  FAULTY
+  SCRAPPED
+}
+
+enum MinerHistoryKind {
+  INITIAL_STATE
+  COMPONENT_INSTALLED
+  COMPONENT_REMOVED
+  COMPONENT_UPDATED
+  MOVEMENT
+}
+
 enum MovementReason {
   INITIAL_REGISTRATION
   DEPLOYMENT
@@ -34,8 +62,8 @@ model companies {
   name        String
   description String?
 
-  owned_miners   miners[] @relation("MinerOwner")
-  managed_miners miners[] @relation("MinerManager")
+  owned_miners   miner[] @relation("MinerOwner")
+  managed_miners miner[] @relation("MinerManager")
 }
 
 model sites {
@@ -44,8 +72,9 @@ model sites {
   description String?
   is_active   Boolean @default(true)
 
-  buildings        buildings[]
-  locations        locations[]
+  buildings buildings[]
+  locations locations[]
+  switches  network_switches[]
 }
 
 model buildings {
@@ -68,7 +97,7 @@ model can {
   can_number  String
   is_active   Boolean @default(true)
 
-  row_count  Int
+  row_count    Int
   slot_per_row Int
 
   building  buildings   @relation(fields: [building_id], references: [id], onDelete: Restrict)
@@ -84,75 +113,182 @@ model can {
 model locations {
   id          Int          @id @default(autoincrement())
   site_id     Int
-  building_id Int
-  can_id      Int
+  building_id Int?
+  can_id      Int?
   kind        LocationKind
   code        String
   name        String
 
-  row_index   Int?
-  slot_index  Int?
+  row_index  Int?
+  slot_index Int?
 
-  is_active   Boolean      @default(true)
+  is_active Boolean @default(true)
 
   site     sites      @relation(fields: [site_id], references: [id], onDelete: Restrict)
   building buildings? @relation(fields: [building_id, site_id], references: [id, site_id], onUpdate: Restrict, onDelete: Restrict)
-  can      can       @relation(fields: [can_id, building_id], references: [id, building_id], onUpdate: Restrict, onDelete: Restrict)
+  can      can?       @relation(fields: [can_id, building_id], references: [id, building_id], onUpdate: Restrict, onDelete: Restrict)
 
-  current_miners miners[] @relation("MinerCurrentLocation")
+  ports port_index[]
+
+  current_miners miner[] @relation("MinerCurrentLocation")
 
   // Used only to enforce exclusive deployment-slot occupancy.
-  slot_occupant miners? @relation("MinerOccupiedSlot")
+  slot_occupant miner? @relation("MinerOccupiedSlot")
 
   movements_from miner_movements[] @relation("MovementFrom")
   movements_to   miner_movements[] @relation("MovementTo")
 
   @@unique([site_id, code])
-  @@unique([can_id, row_index, slot_index]) 
+  @@unique([can_id, row_index, slot_index])
   @@index([site_id, kind, is_active])
 }
 
 model miner_model {
-  id           Int     @id @default(autoincrement())
+  id           Int    @id @default(autoincrement())
   manufacturer String
   name         String
 
-  miners miners[]
+  miners miner[]
 }
 
-model miners {
-  id                    Int     @id @default(autoincrement())
-  serial_number         String  @unique
+// The assembled asset keeps its identity when physical components change.
+// Preserve the existing SQL table and legacy serial label during this transition.
+model miner {
+  id                    Int      @id @default(autoincrement())
+  identify_miner_id     Int      @unique @default(autoincrement())
+  serial_number         String   @unique
   asset_tag             String?
   model_id              Int?
   owner_company_id      Int
   management_company_id Int
+  current_location_id   Int?
+  occupied_slot_id      Int?     @unique
+  version               Int      @default(0)
+  dateCreated           DateTime @default(now()) @map("created_at")
+  dateUpdated           DateTime @updatedAt @map("updated_at")
 
-  current_location_id Int?
+  model            miner_model? @relation(fields: [model_id], references: [id], onDelete: Restrict)
+  owner            companies    @relation("MinerOwner", fields: [owner_company_id], references: [id], onDelete: Restrict)
+  manager          companies    @relation("MinerManager", fields: [management_company_id], references: [id], onDelete: Restrict)
+  current_location locations?   @relation("MinerCurrentLocation", fields: [current_location_id], references: [id], onDelete: Restrict)
+  occupied_slot    locations?   @relation("MinerOccupiedSlot", fields: [occupied_slot_id], references: [id], onDelete: Restrict)
 
-  // Set to current_location_id for deployment slots.
-  // Must be null for shared locations.
-  occupied_slot_id Int? @unique
-
-  // Incremented on each move to detect stale submissions.
-  version Int @default(0)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  model miner_model? @relation(fields: [model_id], references: [id], onDelete: Restrict)
-
-  owner companies @relation("MinerOwner", fields: [owner_company_id], references: [id], onDelete: Restrict)
-
-  manager companies @relation("MinerManager", fields: [management_company_id], references: [id], onDelete: Restrict)
-
-  current_location locations? @relation("MinerCurrentLocation", fields: [current_location_id], references: [id], onDelete: Restrict)
-
-  occupied_slot locations? @relation("MinerOccupiedSlot", fields: [occupied_slot_id], references: [id], onDelete: Restrict)
-
-  movements miner_movements[]
+  skeleton      skeleton?
+  control_board control_boards?
+  hash_boards   hash_boards[]
+  reserved_port port_index?
+  history       miner_history[]
+  movements     miner_movements[]
 
   @@index([current_location_id])
+  @@index([owner_company_id])
+  @@index([management_company_id])
+  @@map("miners")
+}
+
+model skeleton {
+  id            Int           @id @default(autoincrement())
+  miner_id      Int?          @unique
+  serial_number String        @unique
+  condition     ConditionKind @default(UNKNOWN)
+  dateCreated   DateTime      @default(now())
+  dateUpdated   DateTime      @updatedAt
+
+  miner   miner?          @relation(fields: [miner_id], references: [id], onDelete: Restrict)
+  history miner_history[]
+}
+
+model control_boards {
+  id            Int           @id @default(autoincrement())
+  miner_id      Int?          @unique
+  serial_number String?       @unique
+  // Canonical lowercase colon-separated MAC; normalization is enforced in SQL.
+  mac_address   String        @unique
+  condition     ConditionKind @default(UNKNOWN)
+  dateCreated   DateTime      @default(now())
+  dateUpdated   DateTime      @updatedAt
+
+  miner   miner?          @relation(fields: [miner_id], references: [id], onDelete: Restrict)
+  history miner_history[]
+}
+
+model hash_boards {
+  id            Int                @id @default(autoincrement())
+  miner_id      Int?
+  // Position and miner must either both be set or both be null.
+  position      HashboardPosition?
+  serial_number String?            @unique
+  condition     ConditionKind      @default(UNKNOWN)
+  dateCreated   DateTime           @default(now())
+  dateUpdated   DateTime           @updatedAt
+
+  miner   miner?          @relation(fields: [miner_id], references: [id], onDelete: Restrict)
+  history miner_history[]
+
+  // Two boards = two rows; three boards = three rows. Never duplicate a slot.
+  @@unique([miner_id, position])
+}
+
+model network_switches {
+  id      String       @id @default(uuid())
+  site_id Int
+  name    String
+  active  Boolean      @default(true)
+  site    sites        @relation(fields: [site_id], references: [id], onDelete: Restrict)
+  ports   port_index[]
+
+  @@unique([site_id, name])
+}
+
+model port_index {
+  id                Int       @id @default(autoincrement())
+  switch_id         String
+  port_number       String
+  location_id       Int       @unique
+  observed_mac      String?
+  last_seen_at      DateTime?
+  active            Boolean   @default(true)
+  // A reservation survives a trip to repair; it is not physical occupancy.
+  reserved_miner_id Int?      @unique
+
+  switch         network_switches @relation(fields: [switch_id], references: [id], onDelete: Restrict)
+  location       locations        @relation(fields: [location_id], references: [id], onDelete: Restrict)
+  reserved_miner miner?           @relation(fields: [reserved_miner_id], references: [id], onDelete: Restrict)
+
+  @@unique([switch_id, port_number])
+  @@index([observed_mac])
+}
+
+// Append an event for each change. Snapshot details preserve old serials/MACs.
+model miner_history {
+  id               Int                @id @default(autoincrement())
+  miner_id         Int
+  kind             MinerHistoryKind
+  user_id          Int?
+  source           RecordSource       @default(SYSTEM)
+  skeleton_id      Int?
+  control_board_id Int?
+  hash_board_id    Int?
+  position         HashboardPosition?
+  movement_id      Int?               @unique
+  notes            String?
+  details          Json
+  occurred_at      DateTime           @default(now())
+  dateCreated      DateTime           @default(now())
+  dateDeleted      DateTime?
+
+  miner         miner            @relation(fields: [miner_id], references: [id], onDelete: Restrict)
+  user          users?           @relation(fields: [user_id], references: [id], onDelete: Restrict)
+  skeleton      skeleton?        @relation(fields: [skeleton_id], references: [id], onDelete: Restrict)
+  control_board control_boards?  @relation(fields: [control_board_id], references: [id], onDelete: Restrict)
+  hash_board    hash_boards?     @relation(fields: [hash_board_id], references: [id], onDelete: Restrict)
+  movement      miner_movements? @relation(fields: [movement_id], references: [id], onDelete: Restrict)
+
+  @@index([miner_id, occurred_at, id])
+  @@index([user_id])
+  @@index([skeleton_id])
+  @@index([control_board_id])
+  @@index([hash_board_id])
 }
 
 model users {
@@ -164,14 +300,16 @@ model users {
   is_active  Boolean  @default(true)
   created_at DateTime @default(now())
 
-  movements        miner_movements[]
-  audit_entries    audit_log[]
+  movements     miner_movements[]
+  audit_entries audit_log[]
+  miner_history miner_history[]
 }
 
 model miner_movements {
   id               Int            @id @default(autoincrement())
   miner_id         Int
-  recorded_by_id   Int
+  recorded_by_id   Int?
+  source           RecordSource   @default(MANUAL)
   from_location_id Int?
   to_location_id   Int
   reason           MovementReason
@@ -183,13 +321,15 @@ model miner_movements {
   // The client reuses this UUID when retrying one submission.
   submission_key String @unique @db.Uuid
 
-  miner miners @relation(fields: [miner_id], references: [id], onDelete: Restrict)
+  miner miner @relation(fields: [miner_id], references: [id], onDelete: Restrict)
 
-  recorded_by users @relation(fields: [recorded_by_id], references: [id], onDelete: Restrict)
+  recorded_by users? @relation(fields: [recorded_by_id], references: [id], onDelete: Restrict)
 
   from_location locations? @relation("MovementFrom", fields: [from_location_id], references: [id], onDelete: Restrict)
 
   to_location locations @relation("MovementTo", fields: [to_location_id], references: [id], onDelete: Restrict)
+
+  history miner_history?
 
   @@index([miner_id, occurred_at, id])
   @@index([recorded_at, id])
