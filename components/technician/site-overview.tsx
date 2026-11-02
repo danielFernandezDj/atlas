@@ -1,281 +1,143 @@
-import {
-  Activity,
-  ArrowDown,
-  ArrowUp,
-  CircleAlert,
-  Cpu,
-  Gauge,
-  Thermometer,
-  Zap,
-} from "lucide-react"
-import {
-  type DemoSite,
-  buildingTemperatures,
-  number,
-  percent,
-} from "@/lib/demo/technician"
+import { Building2, Cpu, Layers, MapPin, Wrench } from "lucide-react"
+import type { DashboardData } from "@/lib/dashboard/contracts"
 
-export function SiteOverview({ site }: { site: DemoSite }) {
-  const hashing = site.healthy + site.warning
-  const capacity = site.installed + site.empty
-  const statuses = [
-    {
-      name: "Healthy",
-      count: site.healthy,
-      color: "var(--atlas-green)",
-      description: "Working at full output",
-    },
-    {
-      name: "Warning",
-      count: site.warning,
-      color: "var(--atlas-amber)",
-      description: "Hashing at reduced output",
-    },
-    {
-      name: "Danger",
-      count: site.danger,
-      color: "var(--atlas-red)",
-      description: "Not hashing · needs attention",
-    },
-    {
-      name: "Disabled",
-      count: site.empty,
-      color: "var(--atlas-gray)",
-      description: "Empty locations · no miner installed",
-    },
-  ]
-  const healthyEnd = (site.healthy / capacity) * 100,
-    warningEnd = ((site.healthy + site.warning) / capacity) * 100,
-    dangerEnd = (site.installed / capacity) * 100
+const number = (value: number) => new Intl.NumberFormat("en-US").format(value)
+
+export function SiteOverview({ dashboard }: { dashboard: DashboardData }) {
+  const { summary, buildings } = dashboard
+  if (!summary) return null
   const cards = [
     {
-      label: "ASICs online",
+      label: "Miners at this site",
+      value: summary.miners,
       Icon: Cpu,
-      value: number(hashing),
-      unit: "",
-      body: `of ${number(site.installed)} installed miners`,
-      extra: `${percent(hashing, site.installed)}% online`,
-      kind: "online",
+      note: "Physical location recorded at this site",
     },
     {
-      label: "Current hash rate",
-      Icon: Zap,
-      value: number(site.current),
-      unit: "TH/s",
-      body: "Combined output · selected site",
-      extra: "Current snapshot",
-      kind: "current",
+      label: "Deployed miners",
+      value: summary.deployed,
+      Icon: MapPin,
+      note: "Assigned to deployment slots · live status unknown",
     },
     {
-      label: "ASICs hashing",
-      Icon: Activity,
-      value: number(hashing),
-      unit: "",
-      body: "Miners actively producing hashes",
-      extra: `${number(site.warning)} at reduced output`,
-      kind: "hashing",
+      label: "Miners in repair",
+      value: summary.repair,
+      Icon: Wrench,
+      note: `${number(summary.staging)} in staging · ${number(summary.pallet)} on pallets`,
     },
     {
-      label: "Monthly hash range",
-      Icon: Gauge,
-      value: "",
-      unit: "",
-      body: "This month · site output",
-      extra: "",
-      kind: "range",
-    },
-    {
-      label: "Daily hash rate",
-      Icon: Activity,
-      value: number(site.daily),
-      unit: "TH/s",
-      body: "Average output over the last 24h",
-      extra: "24-hour average",
-      kind: "daily",
-    },
-    {
-      label: "Miners needing attention",
-      Icon: CircleAlert,
-      value: number(site.danger),
-      unit: "",
-      body: `of ${number(site.installed)} installed miners`,
-      extra: "Not hashing · investigate",
-      kind: "attention",
+      label: "Configured deployment slots",
+      value: summary.slots,
+      Icon: Layers,
+      note: `${number(summary.occupied)} occupied · ${number(summary.reserved)} reserved`,
     },
   ]
   return (
-    <div className="atlas-overview-grid">
-      <section
-        className="atlas-metrics"
-        aria-label={`${site.name} mining metrics`}
-      >
-        {cards.map(({ label, Icon, value, unit, body, extra, kind }) => (
-          <article
-            key={kind}
-            className={`atlas-card atlas-metric ${kind === "attention" ? "atlas-attention" : ""}`}
-          >
-            <div className="atlas-metric-heading">
-              <h2>{label}</h2>
-              <Icon size={17} />
-            </div>
-            {kind === "range" ? (
-              <div className="atlas-month-range">
-                <div>
-                  <span className="atlas-muted">
-                    <ArrowDown size={12} />
-                    Min
-                  </span>
-                  <strong>
-                    {number(site.min)} <small>TH/s</small>
-                  </strong>
-                </div>
-                <div>
-                  <span className="atlas-muted">
-                    <ArrowUp size={12} />
-                    Max
-                  </span>
-                  <strong>
-                    {number(site.max)} <small>TH/s</small>
-                  </strong>
-                </div>
+    <>
+      <div className="atlas-overview-grid">
+        <section className="atlas-metrics" aria-label="Site inventory counts">
+          {cards.map(({ label, value, Icon, note }) => (
+            <article key={label} className="atlas-card atlas-metric">
+              <div className="atlas-metric-heading">
+                <h2>{label}</h2>
+                <Icon size={17} aria-hidden="true" />
               </div>
-            ) : (
-              <div
-                className={`atlas-metric-value ${kind === "attention" ? "atlas-red" : ""}`}
-              >
-                {value}
-                <span>{unit}</span>
-                {kind === "online" && (
-                  <span className="atlas-percent">
-                    {percent(hashing, site.installed)}%
-                  </span>
-                )}
-              </div>
-            )}
-            <p className="atlas-muted">{body}</p>
-            {kind === "online" ? (
-              <div className="atlas-progress" aria-hidden="true">
-                <span
-                  style={{ width: `${(hashing / site.installed) * 100}%` }}
-                />
-              </div>
-            ) : kind === "range" ? (
-              <div className="atlas-range-track" aria-hidden="true">
-                <span />
-              </div>
-            ) : (
-              <p
-                className={`atlas-metric-note ${kind === "attention" ? "atlas-red" : "atlas-subtle"}`}
-              >
-                <span className="atlas-small-dot" />
-                {extra}
-              </p>
-            )}
-          </article>
-        ))}
-      </section>
-      <div className="atlas-overview-right">
-        <section
-          className="atlas-card atlas-temperature"
-          aria-labelledby="temperature-title"
-        >
-          <div className="atlas-section-header">
-            <div>
-              <h2 id="temperature-title">Can temperatures</h2>
-              <p className="atlas-muted">
-                Average temperature in each can · °C
-              </p>
-            </div>
-            <Thermometer size={18} className="atlas-subtle" />
-          </div>
-          {[1, 2].map((building) => {
-            const temperatures = buildingTemperatures(site, building)
-            const average =
-              temperatures.reduce((sum, value) => sum + value, 0) /
-              temperatures.length
-            return (
-              <div className="atlas-building" key={building}>
-                <div className="atlas-building-heading">
-                  <h3>Building {building}</h3>
-                  <span className="atlas-muted">
-                    10 cans <span aria-hidden="true">·</span> Avg{" "}
-                    <strong>{average.toFixed(1)}°C</strong>
-                  </span>
-                </div>
-                <div className="atlas-cans">
-                  {temperatures.map((temp, index) => (
-                    <div
-                      className="atlas-can"
-                      key={index}
-                      title={`Building ${building}, Can ${index + 1}: ${temp}°C`}
-                    >
-                      <span>Can {String(index + 1).padStart(2, "0")}</span>
-                      <strong>{temp}°</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+              <div className="atlas-metric-value">{number(value)}</div>
+              <p className="atlas-muted">{note}</p>
+            </article>
+          ))}
         </section>
         <section
           className="atlas-card atlas-status"
-          aria-labelledby="status-title"
+          aria-labelledby="installed-components-title"
         >
           <div className="atlas-section-header">
+            <h2 id="installed-components-title">Installed components</h2>
+          </div>
+          <p className="atlas-muted">
+            Parts assigned to miners physically at this site.
+          </p>
+          <dl className="atlas-dashboard-components">
             <div>
-              <h2 id="status-title">Miner status</h2>
-              <p className="atlas-muted">A clear view of every location</p>
+              <dt>Skeletons</dt>
+              <dd>{number(summary.skeletons)}</dd>
             </div>
-            <span className="atlas-chip">{number(capacity)} locations</span>
-          </div>
-          <div className="atlas-status-body">
-            <div
-              className="atlas-donut"
-              role="img"
-              aria-label={statuses
-                .map(
-                  (status) =>
-                    `${status.name}: ${number(status.count)} locations, ${percent(status.count, capacity)} percent`
-                )
-                .join(". ")}
-              style={{
-                background: `conic-gradient(var(--atlas-green) 0% ${healthyEnd}%, var(--atlas-amber) ${healthyEnd}% ${warningEnd}%, var(--atlas-red) ${warningEnd}% ${dangerEnd}%, var(--atlas-gray) ${dangerEnd}% 100%)`,
-              }}
-            >
-              <div>
-                <span className="atlas-muted">Installed</span>
-                <strong>{number(site.installed)}</strong>
-                <span className="atlas-muted">miners</span>
-              </div>
+            <div>
+              <dt>Control boards</dt>
+              <dd>{number(summary.controlBoards)}</dd>
             </div>
-            <ul className="atlas-status-legend">
-              {statuses.map((status) => (
-                <li key={status.name}>
-                  <span
-                    className="atlas-status-dot"
-                    style={{ background: status.color }}
-                  />
-                  <div>
-                    <strong>{status.name}</strong>
-                    <p className="atlas-muted">{status.description}</p>
-                  </div>
-                  <div className="atlas-status-count">
-                    <strong>{number(status.count)}</strong>
-                    <span className="atlas-muted">
-                      {percent(status.count, capacity)}%
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="atlas-status-footnote">
-            Percentages are of all {number(capacity)} locations. Disabled
-            locations are empty, not offline miners.
+            <div>
+              <dt>Hashboards</dt>
+              <dd>{number(summary.hashBoards)}</dd>
+            </div>
+          </dl>
+          <p className="atlas-subtle">
+            Loose inventory is excluded. Installed counts do not indicate mining
+            health.
           </p>
         </section>
       </div>
-    </div>
+      <section
+        className="atlas-card atlas-temperature atlas-dashboard-section"
+        aria-labelledby="site-configuration-title"
+      >
+        <div className="atlas-section-header">
+          <div>
+            <h2 id="site-configuration-title">
+              <Building2 size={17} aria-hidden="true" /> Site configuration
+            </h2>
+            <p className="atlas-muted">
+              Registered buildings, cans, and deployment slots. Inactive
+              configuration remains visible.
+            </p>
+          </div>
+        </div>
+        {!buildings.length ? (
+          <p className="atlas-empty">
+            No buildings have been configured at this site yet.
+          </p>
+        ) : (
+          buildings.map((building) => (
+            <div className="atlas-building" key={building.id}>
+              <div className="atlas-building-heading">
+                <h3>
+                  Building {building.number}
+                  {!building.active && " · Inactive"}
+                </h3>
+                <span className="atlas-muted">
+                  {number(building.cans.length)} cans
+                </span>
+              </div>
+              {!building.cans.length ? (
+                <p className="atlas-muted">No cans configured.</p>
+              ) : (
+                <div className="atlas-dashboard-cans">
+                  {building.cans.map((can) => (
+                    <div className="atlas-can" key={can.id}>
+                      <span>
+                        Can {can.number}
+                        {!can.active && " · Inactive"}
+                      </span>
+                      <strong>{number(can.slots)}</strong>
+                      <span>configured slots</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </section>
+      <section
+        className="atlas-card atlas-temperature atlas-dashboard-section"
+        aria-labelledby="mining-readings-title"
+      >
+        <h2 id="mining-readings-title">Mining readings</h2>
+        <p className="atlas-muted">
+          No live hash-rate, temperature, or online-status readings have been
+          received yet.
+        </p>
+      </section>
+    </>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import {
   Activity,
   Cpu,
@@ -10,6 +10,10 @@ import {
   UserRound,
   Zap,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import type { DashboardData } from "@/lib/dashboard/contracts"
+import { SiteOverview } from "./technician/site-overview"
+import { MovementHistory } from "./technician/movement-history"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
 import "./technician/technician-dashboard.css"
 
@@ -30,15 +34,26 @@ const titles: Record<View, string> = {
 }
 
 type TechnicianDashboardProps = {
-  sites: {
-    id: number
-    name: string
-  }[]
+  dashboard: DashboardData
+  viewer: { name: string; role: string }
 }
 
-// The workspace has no operational data source yet. Do not fall back to demo fixtures.
-export function TechnicianDashboard({ sites }: TechnicianDashboardProps) {
+export function TechnicianDashboard({
+  dashboard,
+  viewer,
+}: TechnicianDashboardProps) {
   const [view, setView] = useState<View>("dashboard")
+  const [pending, startTransition] = useTransition()
+  const router = useRouter()
+  const { sites, selectedSite } = dashboard
+  function changeSite(value: string) {
+    if (!value) return
+    const params = new URLSearchParams(window.location.search)
+    params.set("site", value)
+    startTransition(() =>
+      router.replace(`/technician?${params.toString()}`, { scroll: false })
+    )
+  }
   return (
     <div className="atlas-workspace">
       <aside className="atlas-rail" aria-label="Main navigation">
@@ -70,65 +85,126 @@ export function TechnicianDashboard({ sites }: TechnicianDashboardProps) {
             <label htmlFor="active-site">
               Workspace / <span>Site</span>
             </label>
-            <select id="active-site" disabled aria-label="Workspace site">
-              <option>No sites loaded</option>
+            <select
+              id="active-site"
+              aria-label="Workspace site"
+              value={selectedSite?.id ?? ""}
+              disabled={!sites.length || pending}
+              onChange={(event) => changeSite(event.target.value)}
+            >
+              {!selectedSite && (
+                <option value="">
+                  {sites.length ? "Choose a site" : "No sites yet"}
+                </option>
+              )}
+              {sites.map((site) => (
+                <option key={site.id} value={site.id}>
+                  {site.name}
+                  {!site.is_active && " · Inactive"}
+                </option>
+              ))}
             </select>
           </div>
-          <span className="atlas-muted">Awaiting site data</span>
+          <div className="atlas-topbar-right">
+            <span className="atlas-muted" role="status">
+              {pending
+                ? "Updating site…"
+                : selectedSite
+                  ? `${selectedSite.name}${!selectedSite.is_active ? " · Inactive site" : ""}`
+                  : "No site selected"}
+            </span>
+            <button
+              className="atlas-chip"
+              disabled={pending}
+              onClick={() => startTransition(() => router.refresh())}
+            >
+              Refresh
+            </button>
+          </div>
         </header>
-        <main className="atlas-main">
+        <main className="atlas-main" aria-busy={pending}>
           <div className="atlas-page-heading">
             <div>
               <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
               <h1>{titles[view]}</h1>
               <p className="atlas-muted">
-                Your workspace is ready for operational data.
+                {selectedSite?.description ??
+                  "Site inventory and recent recorded movements."}
               </p>
             </div>
           </div>
           {view === "dashboard" && (
             <>
               <BitcoinStrip />
-              <section
-                className="atlas-card"
-                aria-label="Mining metrics"
-                style={{ padding: 24, marginBottom: 20 }}
-              >
-                <h2>Mining metrics</h2>
-                <p className="atlas-muted">
-                  Hash rate, miner status, and temperatures are unavailable
-                  until site data is connected.
-                </p>
-              </section>
+              {selectedSite ? (
+                <>
+                  <SiteOverview dashboard={dashboard} />
+                  <MovementHistory
+                    key={selectedSite.id}
+                    movements={dashboard.movements}
+                  />
+                </>
+              ) : (
+                <section
+                  className="atlas-card"
+                  style={{ padding: 32 }}
+                  role="status"
+                >
+                  <h2>
+                    {dashboard.siteUnavailable
+                      ? "Site unavailable"
+                      : "No sites yet"}
+                  </h2>
+                  <p className="atlas-muted">
+                    {dashboard.siteUnavailable
+                      ? "Choose an available site to load its dashboard."
+                      : "Your site configuration and inventory will appear here once records are added."}
+                  </p>
+                </section>
+              )}
+              <footer className="atlas-page-footer">
+                <span>Read-only inventory · {viewer.name}</span>
+                <span>
+                  Loaded{" "}
+                  <time dateTime={dashboard.loadedAt}>
+                    {new Intl.DateTimeFormat("en-US", {
+                      timeZone: "America/Chicago",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    }).format(new Date(dashboard.loadedAt))}{" "}
+                    CT
+                  </time>
+                </span>
+              </footer>
             </>
           )}
-          <section
-            className="atlas-card"
-            aria-label={`${titles[view]} availability`}
-            style={{ padding: 32 }}
-          >
-            <Activity size={24} aria-hidden="true" />
-            <h2>
-              {view === "dashboard"
-                ? "No movement history loaded"
-                : view === "site-map"
+          {view !== "dashboard" && (
+            <section
+              className="atlas-card"
+              aria-label={`${titles[view]} availability`}
+              style={{ padding: 32 }}
+            >
+              <Activity size={24} aria-hidden="true" />
+              <h2>
+                {view === "site-map"
                   ? "No site configuration loaded"
                   : view === "miners"
                     ? "No miner inventory loaded"
                     : view === "actions"
                       ? "Actions unavailable"
                       : "No profile loaded"}
-            </h2>
-            <p className="atlas-muted">
-              {view === "site-map"
-                ? "Sites, buildings, cans, and positions will appear when configuration is connected."
-                : view === "actions"
-                  ? "Registration and movement recording will be available when inventory and account access are connected."
-                  : view === "account"
-                    ? "Your identity and assigned sites will appear after sign-in is connected."
-                    : "Connect operational data to see records here."}
-            </p>
-          </section>
+              </h2>
+              <p className="atlas-muted">
+                {view === "site-map"
+                  ? "Sites, buildings, cans, and positions will appear when configuration is connected."
+                  : view === "actions"
+                    ? "Registration and movement recording will be available when inventory and account access are connected."
+                    : view === "account"
+                      ? "Your identity and assigned sites will appear after sign-in is connected."
+                      : "Connect operational data to see records here."}
+              </p>
+            </section>
+          )}
         </main>
       </div>
     </div>

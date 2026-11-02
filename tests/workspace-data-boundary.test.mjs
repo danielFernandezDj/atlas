@@ -28,6 +28,7 @@ async function dependencies(entry, seen = new Set()) {
       ? resolve(root, specifier.slice(2))
       : resolve(dirname(file), specifier)
     const candidates = [
+      base,
       base + ".tsx",
       base + ".ts",
       resolve(base, "index.tsx"),
@@ -52,13 +53,31 @@ async function dependencies(entry, seen = new Set()) {
 }
 
 for (const route of ["app/technician/page.tsx", "app/management/page.tsx"]) {
-  test(`${route} never loads synthetic fixtures or database adapters`, async () => {
+  test(`${route} never loads synthetic fixtures`, async () => {
     const files = await dependencies(route)
     assert.ok(files.size > 1)
     for (const file of files) {
       assert.doesNotMatch(file, /\/lib\/demo\/|\/demo-data\.ts$/)
-      const source = await readFile(file, "utf8")
-      assert.doesNotMatch(source, /@prisma\/|@neondatabase\/|DATABASE_URL/)
     }
   })
 }
+
+test("dashboard client bundles never import the database or server query layer", async () => {
+  for (const entry of [
+    "components/technician-dashboard.tsx",
+    "components/technician/site-overview.tsx",
+    "components/technician/movement-history.tsx",
+  ]) {
+    for (const file of await dependencies(entry)) {
+      assert.doesNotMatch(
+        file,
+        /\/lib\/prisma\.ts$|\/lib\/dashboard\/read\.ts$|\/lib\/generated\/prisma\//
+      )
+      const source = await readFile(file, "utf8")
+      assert.doesNotMatch(
+        source,
+        /@prisma\/|@neondatabase\/serverless|DATABASE_URL/
+      )
+    }
+  }
+})
