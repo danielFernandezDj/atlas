@@ -18,6 +18,8 @@ import {
 } from "./technician/live-miner-workspace"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
+import { WeatherOutlook } from "./technician/weather-outlook"
+import { SiteClock } from "./technician/site-clock"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
 import "./technician/technician-dashboard.css"
 
@@ -110,8 +112,15 @@ export function TechnicianDashboard({
               ))}
             </select>
           </div>
+          {selectedSite && (
+            <WeatherOutlook
+              key={selectedSite.id}
+              siteName={selectedSite.name}
+              refreshKey={dashboard.loadedAt}
+            />
+          )}
           <div className="atlas-topbar-right">
-            <span className="atlas-muted" role="status">
+            <span className="sr-only" role="status">
               {pending
                 ? "Updating site…"
                 : selectedSite
@@ -125,6 +134,7 @@ export function TechnicianDashboard({
             >
               Refresh
             </button>
+            <SiteClock />
           </div>
         </header>
         <main className="atlas-main" aria-busy={pending}>
