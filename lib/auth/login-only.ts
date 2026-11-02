@@ -14,6 +14,8 @@ const existingAccountRoutes = new Set([
   "get-session",
   "token",
   "jwks",
+  "email-otp/request-password-reset",
+  "email-otp/reset-password",
   "request-password-reset",
   "reset-password",
   "verify-email",

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 import { authClient } from "@/lib/auth/client"
 import { Button } from "@/components/ui/button"
@@ -122,6 +123,12 @@ export function AuthPanel({ user }: { user: AuthUser | null }) {
               {pending ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+          <Link
+            href="/reset-password"
+            className="mt-4 inline-block text-sm underline underline-offset-4"
+          >
+            Forgot password?
+          </Link>
         </>
       )}
       {message && (

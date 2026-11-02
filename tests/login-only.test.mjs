@@ -51,6 +51,8 @@ test("existing login, sessions, sign-out and recovery keep the SDK response and 
     ["get-session"],
     ["sign-out"],
     ["reset-password"],
+    ["email-otp", "request-password-reset"],
+    ["email-otp", "reset-password"],
     ["verify-email"],
     ["token"],
   ]) {

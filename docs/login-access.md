@@ -41,3 +41,29 @@ Run `node --test tests/login-only.test.mjs tests/dashboard-read.test.mjs` to che
 that signup cannot reach the authentication provider and unapproved users cannot
 read inventory. A direct-service check should confirm Neon rejects public signup
 without creating an account; do not test with real user credentials.
+
+## Password recovery
+
+The sign-in form links to `/reset-password`, a public recovery page. Atlas uses
+Neon's email-code flow with the existing shared email provider:
+
+1. `authClient.emailOtp.requestPasswordReset({ email })` sends the reset code.
+2. The user enters the code, a new password and its confirmation in Atlas.
+3. `authClient.emailOtp.resetPassword({ email, otp, password })` verifies the code
+   and writes the new password hash through Neon Auth.
+4. The user returns to sign-in and uses the new password.
+
+The proxy allowlist includes only the two additional recovery endpoints:
+`email-otp/request-password-reset` and `email-otp/reset-password`. Signup and
+alternate implicit account-creation flows remain blocked. Recovery does not
+create a staff record or change roles or email verification requirements.
+The same request acknowledgement is shown for unknown accounts. Neon enforces
+code expiry, validity and attempt limits; Atlas adds a resend cooldown. Password
+and code values remain in component state and are cleared on completion or when
+changing email. They are not put in URLs, logs or browser storage. Passwords are
+8–128 characters under the current default Auth password policy.
+
+For a manually inserted malformed credential, use this recovery flow to replace
+the stored value with a real password hash. Do not edit hashes manually or delete
+the user. Complete verification with the code from the user's own inbox, then
+confirm normal login works. An accepted send request does not prove inbox delivery.
