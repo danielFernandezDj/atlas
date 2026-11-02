@@ -1,10 +1,7 @@
 import { ManagementOverview } from "./management-overview"
 
-export const metadata = {
-  title: "Management Overview | Atlas — Synthetic preview",
-}
+export const metadata = { title: "Management Overview | Atlas" }
 
-// Independent synthetic preview. No authentication, redirect, or data integration is changed here.
 export default function ManagementPage() {
   return <ManagementOverview />
 }

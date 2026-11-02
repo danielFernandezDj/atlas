@@ -1,52 +1,50 @@
 "use client"
 
 import { useState } from "react"
-import { ArrowUpRight, History, Search } from "lucide-react"
-import { type DemoMovement, movementTime } from "@/lib/demo/technician"
+import { History, Search } from "lucide-react"
+import type { DashboardData } from "@/lib/dashboard/contracts"
+
+const time = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Chicago",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+})
 
 export function MovementHistory({
   movements,
-  personal = false,
-  onSelect,
 }: {
-  movements: DemoMovement[]
-  personal?: boolean
-  onSelect: (serial: string) => void
+  movements: DashboardData["movements"]
 }) {
   const [query, setQuery] = useState("")
   const filtered = movements.filter((item) =>
-    `${item.serial} ${item.from} ${item.to} ${item.reason} ${item.by}`
+    `${item.identity} ${item.serial} ${item.from} ${item.to} ${item.reason} ${item.by}`
       .toLowerCase()
       .includes(query.trim().toLowerCase())
   )
   return (
     <section
       className="atlas-card atlas-history"
-      aria-labelledby={
-        personal ? "personal-history-title" : "movement-history-title"
-      }
+      aria-labelledby="movement-history-title"
     >
       <div className="atlas-section-header">
         <div>
-          <h2
-            id={personal ? "personal-history-title" : "movement-history-title"}
-          >
-            <History size={17} />
-            {personal ? "Your miner activity" : "Movement history"}
+          <h2 id="movement-history-title">
+            <History size={17} aria-hidden="true" />
+            Movement history
           </h2>
           <p className="atlas-muted">
-            {personal
-              ? "Miners you’ve handled at the selected site."
-              : "Recent moves to and from the selected site."}{" "}
-            <span className="atlas-subtle">Sample records · Central Time</span>
+            Latest 20 moves to or from this site · Central Time
           </p>
         </div>
         <label className="atlas-search">
-          <Search size={16} />
-          <span className="sr-only">Search movement history</span>
+          <Search size={16} aria-hidden="true" />
+          <span className="sr-only">Search recent movements</span>
           <input
             type="search"
-            placeholder="Search movements…"
+            placeholder="Search recent movements…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -56,24 +54,19 @@ export function MovementHistory({
         <table>
           <thead>
             <tr>
-              <th>Miner serial</th>
-              <th>Movement</th>
-              <th>Reason</th>
-              <th>Technician</th>
-              <th>Recorded</th>
+              <th scope="col">Miner</th>
+              <th scope="col">Movement</th>
+              <th scope="col">Reason</th>
+              <th scope="col">Recorded by</th>
+              <th scope="col">Occurred</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((movement) => (
               <tr key={movement.id}>
                 <td>
-                  <button
-                    className="atlas-serial-button"
-                    onClick={() => onSelect(movement.serial)}
-                  >
-                    {movement.serial}
-                    <ArrowUpRight size={13} />
-                  </button>
+                  <strong>Miner #{movement.identity}</strong>
+                  <span className="atlas-table-from">{movement.serial}</span>
                 </td>
                 <td>
                   <span className="atlas-table-from">{movement.from}</span>
@@ -83,7 +76,11 @@ export function MovementHistory({
                   <span className="atlas-reason">{movement.reason}</span>
                 </td>
                 <td>{movement.by}</td>
-                <td className="atlas-nowrap">{movementTime(movement.at)}</td>
+                <td className="atlas-nowrap">
+                  <time dateTime={movement.occurredAt}>
+                    {time.format(new Date(movement.occurredAt))}
+                  </time>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -92,15 +89,15 @@ export function MovementHistory({
       {!filtered.length && (
         <p className="atlas-empty" role="status">
           {query
-            ? "No matching movements. Try a serial, location, reason, or technician."
-            : "No movement records at this site yet."}
+            ? "No matching recent movements."
+            : "No movements have been recorded for this site yet."}
         </p>
       )}
       <footer className="atlas-history-footer">
         <span role="status">
-          {filtered.length} movement{filtered.length === 1 ? "" : "s"}
+          {filtered.length} of {movements.length} recent movements
         </span>
-        <span>Demo changes reset on refresh</span>
+        <span>Moves across sites appear at both locations.</span>
       </footer>
     </section>
   )

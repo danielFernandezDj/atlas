@@ -1752,3 +1752,39 @@
     font-size: 7px;
   }
 }
+
+.atlas-dashboard-components {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.atlas-dashboard-components dt {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.atlas-dashboard-components dd {
+  font-size: 28px;
+  font-weight: 600;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.atlas-dashboard-section {
+  margin-bottom: 20px;
+}
+.atlas-dashboard-cans {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+.atlas-dashboard-cans .atlas-can {
+  padding: 12px 8px;
+}
+.atlas-dashboard-cans .atlas-can > span {
+  white-space: normal;
+  font-size: 10px;
+}
+.atlas-topbar button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 import { authClient } from "@/lib/auth/client"
 import { Button } from "@/components/ui/button"
@@ -13,8 +14,6 @@ type AuthUser = {
 
 export function AuthPanel({ user }: { user: AuthUser | null }) {
   const router = useRouter()
-  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in")
-  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [message, setMessage] = useState("")
@@ -28,27 +27,20 @@ export function AuthPanel({ user }: { user: AuthUser | null }) {
     setPending(true)
 
     try {
-      const result =
-        mode === "sign-up"
-          ? await authClient.signUp.email({ name, email, password })
-          : await authClient.signIn.email({ email, password })
+      const result = await authClient.signIn.email({ email, password })
 
       if (result.error) {
         setError(result.error.message ?? "Authentication request failed.")
         return
       }
 
-      setMessage(
-        mode === "sign-up"
-          ? "Account created. Check your email if verification is enabled."
-          : "Signed in successfully.",
-      )
+      setMessage("Signed in successfully.")
       router.refresh()
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Authentication request failed.",
+          : "Authentication request failed."
       )
     } finally {
       setPending(false)
@@ -73,7 +65,7 @@ export function AuthPanel({ user }: { user: AuthUser | null }) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Sign-out request failed.",
+          : "Sign-out request failed."
       )
     } finally {
       setPending(false)
@@ -100,43 +92,11 @@ export function AuthPanel({ user }: { user: AuthUser | null }) {
         </div>
       ) : (
         <>
-          <div className="mb-5 flex gap-4 border-b">
-            <button
-              type="button"
-              className={`-mb-px border-b-2 px-1 pb-2 text-sm ${mode === "sign-in" ? "border-primary font-medium" : "border-transparent text-muted-foreground"}`}
-              onClick={() => {
-                setMode("sign-in")
-                setError("")
-                setMessage("")
-              }}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              className={`-mb-px border-b-2 px-1 pb-2 text-sm ${mode === "sign-up" ? "border-primary font-medium" : "border-transparent text-muted-foreground"}`}
-              onClick={() => {
-                setMode("sign-up")
-                setError("")
-                setMessage("")
-              }}
-            >
-              Create account
-            </button>
-          </div>
+          <h2 className="mb-2 text-lg font-semibold">Sign in</h2>
+          <p className="mb-5 text-sm text-muted-foreground">
+            Access is managed by your Atlas administrator.
+          </p>
           <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-            {mode === "sign-up" && (
-              <label className="flex flex-col gap-1.5 text-sm">
-                Name
-                <input
-                  autoComplete="name"
-                  className="h-9 rounded-md border bg-background px-3"
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  value={name}
-                />
-              </label>
-            )}
             <label className="flex flex-col gap-1.5 text-sm">
               Email
               <input
@@ -151,9 +111,7 @@ export function AuthPanel({ user }: { user: AuthUser | null }) {
             <label className="flex flex-col gap-1.5 text-sm">
               Password
               <input
-                autoComplete={
-                  mode === "sign-up" ? "new-password" : "current-password"
-                }
+                autoComplete="current-password"
                 className="h-9 rounded-md border bg-background px-3"
                 onChange={(event) => setPassword(event.target.value)}
                 required
@@ -162,13 +120,15 @@ export function AuthPanel({ user }: { user: AuthUser | null }) {
               />
             </label>
             <Button disabled={pending} type="submit">
-              {pending
-                ? "Please wait…"
-                : mode === "sign-up"
-                  ? "Create account"
-                  : "Sign in"}
+              {pending ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+          <Link
+            href="/reset-password"
+            className="mt-4 inline-block text-sm underline underline-offset-4"
+          >
+            Forgot password?
+          </Link>
         </>
       )}
       {message && (
