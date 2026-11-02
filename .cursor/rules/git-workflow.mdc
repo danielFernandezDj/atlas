@@ -1,0 +1,10 @@
+---
+description: Commit completed Atlas tasks and push only when explicitly requested
+alwaysApply: true
+---
+
+# Git workflow
+
+- At the end of each completed task, commit its changes locally.
+- Do not push unless the user explicitly requests a push for that task. Earlier push requests do not authorize future pushes.
+- Include only changes belonging to the task. If its changes are already committed, report the existing commit instead of creating an empty commit.
