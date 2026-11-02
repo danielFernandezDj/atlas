@@ -64,7 +64,7 @@ export function parseForecast(
   if (!Array.isArray(periods) || !periods.length || !periods.every(isPeriod))
     throw new Error("Invalid forecast")
   const today = siteDate(now)
-  const days: WeatherDay[] = Array.from({ length: 3 }, (_, index) => {
+  const days: WeatherDay[] = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(`${today}T12:00:00Z`)
     date.setUTCDate(date.getUTCDate() + index)
     const key = date.toISOString().slice(0, 10)

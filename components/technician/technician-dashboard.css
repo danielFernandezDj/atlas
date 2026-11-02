@@ -1823,3 +1823,104 @@
     gap: 12px;
   }
 }
+
+/* Match the workspace controls, including the opened site menu. */
+.atlas-site-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 164px;
+  max-width: 240px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition:
+    border-color 150ms,
+    background-color 150ms;
+}
+.atlas-site-trigger > svg {
+  color: var(--atlas-blue);
+  flex-shrink: 0;
+}
+.atlas-site-trigger:hover:not(:disabled),
+.atlas-site-trigger[data-popup-open] {
+  border-color: var(--atlas-blue);
+  background: color-mix(in oklch, var(--primary) 5%, var(--card));
+}
+.atlas-site-trigger:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.atlas-site-chevron {
+  margin-left: auto;
+  display: flex;
+  color: var(--muted-foreground);
+  transition: transform 150ms;
+}
+.atlas-site-trigger[data-popup-open] .atlas-site-chevron {
+  transform: rotate(180deg);
+}
+.atlas-site-positioner {
+  z-index: 60;
+}
+.atlas-site-popup {
+  min-width: max(210px, var(--anchor-width));
+  max-height: var(--available-height);
+  overflow: auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 8px 30px #00000025;
+}
+.atlas-site-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 40px;
+  padding: 9px 11px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+.atlas-site-option[data-highlighted] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.atlas-site-option[data-selected] {
+  font-weight: 600;
+}
+.atlas-weather-wide-label,
+.atlas-weather-days > li:nth-child(n + 4) {
+  display: none;
+}
+@media (min-width: 1600px) {
+  .atlas-weather {
+    max-width: 1100px;
+  }
+  .atlas-weather-days {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .atlas-weather-days > li:nth-child(n + 4) {
+    display: list-item;
+  }
+  .atlas-weather-days > li + li {
+    padding-left: 10px;
+  }
+  .atlas-weather-wide-label {
+    display: inline;
+  }
+  .atlas-weather-compact-label {
+    display: none;
+  }
+}

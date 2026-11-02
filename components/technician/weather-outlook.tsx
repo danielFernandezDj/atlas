@@ -62,10 +62,14 @@ export function WeatherOutlook({
   return (
     <section
       className="atlas-weather"
-      aria-label={`${siteName} three-day weather forecast`}
+      aria-label={`${siteName} weather forecast`}
     >
       <div className="atlas-weather-heading">
-        <h2>3-day outlook · {siteName}</h2>
+        <h2>
+          <span className="atlas-weather-compact-label">3-day</span>
+          <span className="atlas-weather-wide-label">7-day</span> outlook ·{" "}
+          {siteName}
+        </h2>
         {current && !failed && (
           <a
             href={current.sourceUrl}

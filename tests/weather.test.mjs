@@ -44,10 +44,15 @@ function fixture() {
   return {
     properties: {
       updateTime: now.toISOString(),
-      periods: ["2026-11-02", "2026-11-03", "2026-11-04"].flatMap((d) => [
-        period(d, true),
-        period(d, false),
-      ]),
+      periods: [
+        "2026-11-02",
+        "2026-11-03",
+        "2026-11-04",
+        "2026-11-05",
+        "2026-11-06",
+        "2026-11-07",
+        "2026-11-08",
+      ].flatMap((d) => [period(d, true), period(d, false)]),
     },
   }
 }
@@ -64,7 +69,7 @@ test("site mapping uses the four supplied pin centers and never a fallback town"
   assert.equal(weatherSiteByName("  EAST STILES ").key, "east-stiles")
   assert.equal(weatherSiteByName("unknown"), undefined)
 })
-test("three days follow Central calendar date and include nighttime thunderstorms", () => {
+test("seven days follow Central calendar date and include nighttime thunderstorms", () => {
   const raw = fixture()
   raw.properties.periods[1].shortForecast =
     "Slight Chance Showers And Thunderstorms"
@@ -73,7 +78,15 @@ test("three days follow Central calendar date and include nighttime thunderstorm
   assert.equal(siteDate(now), "2026-11-02")
   assert.deepEqual(
     result.days.map((d) => d.date),
-    ["2026-11-02", "2026-11-03", "2026-11-04"]
+    [
+      "2026-11-02",
+      "2026-11-03",
+      "2026-11-04",
+      "2026-11-05",
+      "2026-11-06",
+      "2026-11-07",
+      "2026-11-08",
+    ]
   )
   assert.equal(result.days[0].storm, true)
   assert.equal(result.days[0].icon, "storm")
@@ -91,8 +104,8 @@ test("null probabilities remain unavailable and overnight period belongs to toda
     (p) => (p.probabilityOfPrecipitation.value = null)
   )
   raw.properties.periods.push(
-    period("2026-11-05", true),
-    period("2026-11-05", false)
+    period("2026-11-09", true),
+    period("2026-11-09", false)
   )
   const d = parseForecast(raw, weatherSites[0], early).days[0]
   assert.equal(d.date, "2026-11-03")
@@ -130,7 +143,7 @@ test("weather fetch validates NWS endpoints, uses caching and propagates upstrea
     )
   }
   const result = await readSiteForecast(weatherSites[1], get, now)
-  assert.equal(result.days.length, 3)
+  assert.equal(result.days.length, 7)
   assert.match(calls[0][0], /points\/31.4308,-101.5831$/)
   assert.equal(calls[1][1].next.revalidate, 900)
   let count = 0

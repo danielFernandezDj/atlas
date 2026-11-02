@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react"
 import {
   Activity,
+  Check,
+  ChevronDown,
+  MapPin,
   Cpu,
   LayoutDashboard,
   Map,
@@ -10,6 +13,7 @@ import {
   UserRound,
   Zap,
 } from "lucide-react"
+import { Select } from "@base-ui/react/select"
 import { useRouter } from "next/navigation"
 import type { DashboardData } from "@/lib/dashboard/contracts"
 import {
@@ -92,25 +96,59 @@ export function TechnicianDashboard({
             <label htmlFor="active-site">
               Workspace / <span>Site</span>
             </label>
-            <select
-              id="active-site"
-              aria-label="Workspace site"
-              value={selectedSite?.id ?? ""}
+            <Select.Root
+              value={selectedSite ? String(selectedSite.id) : null}
+              items={sites.map((site) => ({
+                value: String(site.id),
+                label: `${site.name}${!site.is_active ? " · Inactive" : ""}`,
+              }))}
               disabled={!sites.length || pending}
-              onChange={(event) => changeSite(event.target.value)}
+              onValueChange={(value) => {
+                if (value) changeSite(value)
+              }}
             >
-              {!selectedSite && (
-                <option value="">
-                  {sites.length ? "Choose a site" : "No sites yet"}
-                </option>
-              )}
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                  {!site.is_active && " · Inactive"}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger
+                id="active-site"
+                className="atlas-site-trigger"
+                aria-label="Workspace site"
+              >
+                <MapPin size={16} aria-hidden="true" />
+                <Select.Value
+                  placeholder={sites.length ? "Choose a site" : "No sites yet"}
+                />
+                <Select.Icon className="atlas-site-chevron">
+                  <ChevronDown size={15} aria-hidden="true" />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner
+                  className="atlas-site-positioner"
+                  sideOffset={7}
+                  align="start"
+                  alignItemWithTrigger={false}
+                >
+                  <Select.Popup className="atlas-site-popup">
+                    <Select.List>
+                      {sites.map((site) => (
+                        <Select.Item
+                          key={site.id}
+                          value={String(site.id)}
+                          className="atlas-site-option"
+                        >
+                          <Select.ItemText>
+                            {site.name}
+                            {!site.is_active && " · Inactive"}
+                          </Select.ItemText>
+                          <Select.ItemIndicator>
+                            <Check size={15} aria-hidden="true" />
+                          </Select.ItemIndicator>
+                        </Select.Item>
+                      ))}
+                    </Select.List>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
           </div>
           {selectedSite && (
             <WeatherOutlook
