@@ -44,35 +44,36 @@ async function readInventory<T>(url: string, signal: AbortSignal): Promise<T> {
   return body as T
 }
 
-export function LiveMinerWorkspace({
+export function MinerInventorySearch({
   sites,
   initialSite,
-  refreshKey,
+  onSelect,
 }: {
   sites: { id: number; name: string; is_active: boolean }[]
   initialSite: number | null
-  refreshKey: string
+  onSelect: (id: number) => void
 }) {
   const [draft, setDraft] = useState("")
-  const [query, setQuery] = useState<InventoryQuery>({
+  const [filters, setFilters] = useState<InventoryQuery>({
     search: "",
     site: initialSite,
     kind: "",
     page: 1,
     pageSize: 12,
   })
+  const [query, setQuery] = useState<InventoryQuery | null>(null)
   const [page, setPage] = useState<InventoryPage | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [refresh, setRefresh] = useState(0)
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [detail, setDetail] = useState<InventoryMinerDetail | null>(null)
-  const [detailError, setDetailError] = useState("")
-  const [detailRefresh, setDetailRefresh] = useState(0)
   const dialog = useRef<HTMLDialogElement>(null)
-  const opener = useRef<HTMLElement | null>(null)
-
+  const searchButton = useRef<HTMLButtonElement>(null)
+  const selection = useRef(onSelect)
   useEffect(() => {
+    selection.current = onSelect
+  }, [onSelect])
+  useEffect(() => {
+    if (!query) return
     const controller = new AbortController()
     const params = new URLSearchParams({
       search: query.search,
@@ -83,7 +84,10 @@ export function LiveMinerWorkspace({
     if (query.site !== null) params.set("site", String(query.site))
     readInventory<InventoryPage>(`/api/miners?${params}`, controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setPage(result)
+        if (controller.signal.aborted) return
+        if (result.total === 1 && result.items.length === 1)
+          selection.current(result.items[0].id)
+        else setPage(result)
       })
       .catch((failure) => {
         if (!controller.signal.aborted)
@@ -97,159 +101,122 @@ export function LiveMinerWorkspace({
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [query, refresh, refreshKey])
-
-  useEffect(() => {
-    if (selectedId === null) return
-    const controller = new AbortController()
-    if (!dialog.current?.open) dialog.current?.showModal()
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-    readInventory<InventoryMinerDetail>(
-      `/api/miners/${selectedId}`,
-      controller.signal
-    )
-      .then((result) => {
-        if (!controller.signal.aborted) setDetail(result)
-      })
-      .catch((failure) => {
-        if (!controller.signal.aborted)
-          setDetailError(
-            failure instanceof Error ? failure.message : "Miner unavailable."
-          )
-      })
-    return () => {
-      controller.abort()
-      document.body.style.overflow = overflow
-    }
-  }, [selectedId, detailRefresh])
-
-  function closeDetail() {
-    dialog.current?.close()
-    setSelectedId(null)
-    setDetail(null)
-    setDetailError("")
-    opener.current?.focus({ preventScroll: true })
-  }
+  }, [query, refresh])
   function changeQuery(next: InventoryQuery) {
-    closeDetail()
     setLoading(true)
     setError("")
+    setPage(null)
     setQuery(next)
+    setRefresh((value) => value + 1)
+    if (!dialog.current?.open) dialog.current?.showModal()
   }
   function search(event: FormEvent) {
     event.preventDefault()
-    changeQuery({ ...query, search: draft.trim(), page: 1 })
+    changeQuery({ ...filters, search: draft.trim(), page: 1 })
   }
-  function openMiner(id: number) {
-    opener.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
-    setDetail(null)
-    setDetailError("")
-    setSelectedId(id)
+  function closeSearch() {
+    dialog.current?.close()
+    setQuery(null)
+    setLoading(false)
+    searchButton.current?.focus()
   }
-  function reload() {
-    setLoading(true)
-    setError("")
-    setRefresh((value) => value + 1)
-  }
-
   return (
-    <div className="atlas-miner-workspace">
-      <div className="atlas-miner-intro">
-        <span>Database inventory · read only</span>
-        <span>Identity, components and physical location</span>
-      </div>
-      <section
-        className="atlas-card atlas-directory"
-        aria-labelledby="miner-directory-title"
-        aria-busy={loading}
+    <div className="atlas-dashboard-miner-search">
+      <form className="atlas-directory-filters" onSubmit={search}>
+        <label className="atlas-directory-search">
+          <Search size={16} aria-hidden="true" />
+          <span className="sr-only">Search miner inventory</span>
+          <input
+            type="search"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            maxLength={200}
+            placeholder="Miner ID, serial, MAC, company…"
+          />
+        </label>
+        <label>
+          <span className="sr-only">Inventory site filter</span>
+          <select
+            aria-label="Inventory site filter"
+            value={filters.site ?? "all"}
+            onChange={(event) =>
+              setFilters({
+                ...filters,
+                site:
+                  event.target.value === "all"
+                    ? null
+                    : Number(event.target.value),
+                kind:
+                  event.target.value !== "all" && filters.kind === "UNASSIGNED"
+                    ? ""
+                    : filters.kind,
+                page: 1,
+              })
+            }
+          >
+            <option value="all">All sites & unassigned</option>
+            {sites.map((site) => (
+              <option key={site.id} value={site.id}>
+                {site.name}
+                {!site.is_active && " · Inactive"}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span className="sr-only">Inventory location kind</span>
+          <select
+            aria-label="Inventory location kind"
+            value={filters.kind}
+            onChange={(event) =>
+              setFilters({
+                ...filters,
+                kind: event.target.value as InventoryQuery["kind"],
+                site: event.target.value === "UNASSIGNED" ? null : filters.site,
+                page: 1,
+              })
+            }
+          >
+            <option value="">All location kinds</option>
+            {inventoryKinds.map((kind) => (
+              <option key={kind} value={kind}>
+                {inventoryKindLabels[kind]}
+              </option>
+            ))}
+            <option value="UNASSIGNED">Location not assigned</option>
+          </select>
+        </label>
+        <button ref={searchButton} type="submit" className="atlas-chip">
+          Search
+        </button>
+      </form>
+
+      <dialog
+        ref={dialog}
+        className="atlas-dialog atlas-miner-search-dialog"
+        aria-labelledby="miner-search-title"
+        onCancel={(event) => {
+          event.preventDefault()
+          closeSearch()
+        }}
       >
-        <div className="atlas-section-header">
+        <div className="atlas-details-dialog-header">
           <div>
-            <h2 id="miner-directory-title">
-              <Cpu size={18} aria-hidden="true" /> Miner directory
-            </h2>
+            <h2 id="miner-search-title">Choose a miner</h2>
             <p className="atlas-muted">
-              Search miner ID, serial, component serial, MAC, asset tag, model,
-              company, or location.
+              {query?.search
+                ? `Results for “${query.search}”`
+                : "Results for the selected filters"}
             </p>
           </div>
           <button
-            className="atlas-text-button"
-            disabled={loading}
-            onClick={reload}
+            type="button"
+            aria-label="Close miner search"
+            onClick={closeSearch}
           >
-            <RefreshCw size={14} aria-hidden="true" />
-            Refresh inventory
+            <X size={20} />
           </button>
         </div>
-        <form className="atlas-directory-filters" onSubmit={search}>
-          <label className="atlas-directory-search">
-            <Search size={16} aria-hidden="true" />
-            <span className="sr-only">Search miner inventory</span>
-            <input
-              type="search"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              maxLength={200}
-              placeholder="Miner ID, serial, MAC, company…"
-            />
-          </label>
-          <label>
-            <span className="sr-only">Inventory site filter</span>
-            <select
-              aria-label="Inventory site filter"
-              value={query.site ?? "all"}
-              onChange={(event) =>
-                changeQuery({
-                  ...query,
-                  site:
-                    event.target.value === "all"
-                      ? null
-                      : Number(event.target.value),
-                  page: 1,
-                })
-              }
-            >
-              <option value="all">All sites & unassigned</option>
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                  {!site.is_active && " · Inactive"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span className="sr-only">Inventory location kind</span>
-            <select
-              aria-label="Inventory location kind"
-              value={query.kind}
-              onChange={(event) =>
-                changeQuery({
-                  ...query,
-                  kind: event.target.value as InventoryQuery["kind"],
-                  site: event.target.value === "UNASSIGNED" ? null : query.site,
-                  page: 1,
-                })
-              }
-            >
-              <option value="">All location kinds</option>
-              {inventoryKinds.map((kind) => (
-                <option key={kind} value={kind}>
-                  {inventoryKindLabels[kind]}
-                </option>
-              ))}
-              <option value="UNASSIGNED">Location not assigned</option>
-            </select>
-          </label>
-          <button type="submit" className="atlas-chip">
-            Search
-          </button>
-        </form>
         {loading ? (
           <p className="atlas-miner-state" role="status">
             <LoaderCircle className="atlas-spin" size={20} />
@@ -258,7 +225,10 @@ export function LiveMinerWorkspace({
         ) : error ? (
           <div className="atlas-miner-state" role="alert">
             <p>{error}</p>
-            <button className="atlas-text-button" onClick={reload}>
+            <button
+              className="atlas-text-button"
+              onClick={() => changeQuery(query!)}
+            >
               Retry inventory
             </button>
           </div>
@@ -270,8 +240,15 @@ export function LiveMinerWorkspace({
               className="atlas-text-button"
               onClick={() => {
                 setDraft("")
+                setFilters({
+                  ...filters,
+                  search: "",
+                  kind: "",
+                  site: null,
+                  page: 1,
+                })
                 changeQuery({
-                  ...query,
+                  ...filters,
                   search: "",
                   kind: "",
                   site: null,
@@ -301,7 +278,7 @@ export function LiveMinerWorkspace({
                       <button
                         className="atlas-serial-open"
                         aria-label={`View miner ${miner.identity}`}
-                        onClick={() => openMiner(miner.id)}
+                        onClick={() => onSelect(miner.id)}
                       >
                         Miner #{miner.identity}
                       </button>
@@ -350,7 +327,7 @@ export function LiveMinerWorkspace({
             <div>
               <button
                 disabled={loading || page.page <= 1}
-                onClick={() => changeQuery({ ...query, page: page.page - 1 })}
+                onClick={() => changeQuery({ ...query!, page: page.page - 1 })}
               >
                 <ChevronLeft size={14} />
                 Previous
@@ -361,7 +338,7 @@ export function LiveMinerWorkspace({
               </span>
               <button
                 disabled={loading || page.page * page.pageSize >= page.total}
-                onClick={() => changeQuery({ ...query, page: page.page + 1 })}
+                onClick={() => changeQuery({ ...query!, page: page.page + 1 })}
               >
                 Next
                 <ChevronRight size={14} />
@@ -369,181 +346,246 @@ export function LiveMinerWorkspace({
             </div>
           </nav>
         )}
-      </section>
-      <dialog
-        ref={dialog}
-        className="atlas-dialog atlas-miner-details-dialog atlas-live-miner-detail"
-        aria-labelledby="live-miner-title"
-        onCancel={(event) => {
-          event.preventDefault()
-          closeDetail()
-        }}
-      >
-        <div className="atlas-details-dialog-header">
-          <h2 id="live-miner-title">
-            {detail ? `Miner #${detail.identity}` : "Miner details"}
-          </h2>
-          <button
-            type="button"
-            aria-label="Close miner details"
-            onClick={closeDetail}
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <div className="atlas-details-dialog-body">
-          {detailError ? (
-            <div className="atlas-miner-state" role="alert">
-              <p>{detailError}</p>
-              <button
-                className="atlas-text-button"
-                onClick={() => {
-                  setDetailError("")
-                  setDetailRefresh((value) => value + 1)
-                }}
-              >
-                Retry miner details
-              </button>
-            </div>
-          ) : !detail ? (
-            <p className="atlas-miner-state" role="status">
-              Loading miner details…
-            </p>
-          ) : (
-            <>
-              <div className="atlas-section-header">
-                <p className="atlas-muted">
-                  Recorded asset and component information
-                </p>
-                <button
-                  className="atlas-text-button"
-                  onClick={() => {
-                    setDetail(null)
-                    setDetailError("")
-                    setDetailRefresh((value) => value + 1)
-                  }}
-                >
-                  <RefreshCw size={14} />
-                  Refresh miner
-                </button>
-              </div>
-              <dl className="atlas-live-miner-fields">
-                {[
-                  ["Serial label", detail.serial],
-                  ["Asset tag", detail.assetTag],
-                  ["Model", detail.model],
-                  ["Owner", detail.owner],
-                  ["Managed by", detail.manager],
-                  ["Current physical location", detail.location?.label],
-                  ["Miner IP", detail.ip],
-                  ["Last API IP", detail.lastApiIp],
-                  ["Control board MAC", detail.controlBoard?.mac],
-                  ["Firmware version", detail.controlBoard?.firmware],
-                  [
-                    "Reserved deployment slot",
-                    detail.reservation
-                      ? `${detail.reservation.location} · ${detail.reservation.switch} / Port ${detail.reservation.port}`
-                      : null,
-                  ],
-                  ["Created", timestamp(detail.createdAt)],
-                  ["Updated", timestamp(detail.updatedAt)],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{value ?? "Not recorded"}</dd>
-                  </div>
-                ))}
-              </dl>
-              <section className="atlas-live-miner-section">
-                <h3>Installed components</h3>
-                <div className="atlas-table-scroll">
-                  <table className="atlas-miner-table">
-                    <thead>
-                      <tr>
-                        <th>Part / position</th>
-                        <th>Component ID</th>
-                        <th>Serial number</th>
-                        <th>Condition</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { label: "Skeleton", part: detail.skeleton },
-                        { label: "Control board", part: detail.controlBoard },
-                        ...[1, 2, 3].map((position) => ({
-                          label: `Hashboard ${position}`,
-                          part: detail.boards.find(
-                            (board) => board.position === `SLOT_${position}`
-                          ),
-                        })),
-                      ].map(({ label, part }) => (
-                        <tr key={label}>
-                          <td>{label}</td>
-                          <td>{part ? `#${part.id}` : "Not assigned"}</td>
-                          <td>{part?.serial ?? "Not recorded"}</td>
-                          <td>{part?.condition.toLowerCase() ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="atlas-muted">
-                  Positions without an assignment are empty in Atlas; this does
-                  not indicate a hardware fault.
-                </p>
-              </section>
-              <section className="atlas-live-miner-section">
-                <h3>Movement history · {detail.movementCount} total</h3>
-                <p className="atlas-muted">Latest 20 records · Central Time</p>
-                {!detail.movements.length ? (
-                  <p>No movements recorded.</p>
-                ) : (
-                  <ol className="atlas-live-miner-events">
-                    {detail.movements.map((movement) => (
-                      <li key={movement.id}>
-                        <strong>{movement.reason}</strong>
-                        <time dateTime={movement.occurredAt}>
-                          {timestamp(movement.occurredAt)}
-                        </time>
-                        <p>
-                          {movement.from} → {movement.to}
-                        </p>
-                        <p>Recorded by {movement.by}</p>
-                        {movement.notes && <p>{movement.notes}</p>}
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </section>
-              <section className="atlas-live-miner-section">
-                <h3>Component and asset history · {detail.eventCount} total</h3>
-                <p className="atlas-muted">Latest 20 entries · Central Time</p>
-                {!detail.events.length ? (
-                  <p>No asset history recorded.</p>
-                ) : (
-                  <ol className="atlas-live-miner-events">
-                    {detail.events.map((event) => (
-                      <li key={event.id}>
-                        <strong>{event.kind}</strong>
-                        <time dateTime={event.occurredAt}>
-                          {timestamp(event.occurredAt)}
-                        </time>
-                        {event.component && <p>{event.component}</p>}
-                        <p>Recorded by {event.by}</p>
-                        {event.notes && <p>{event.notes}</p>}
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </section>
-              <p className="atlas-inline-notice">
-                Live hash rate, temperature, and online status are not
-                connected. Inventory condition is not a live health reading.
-              </p>
-            </>
-          )}
-        </div>
       </dialog>
     </div>
+  )
+}
+
+export function LiveMinerWorkspace({
+  selectedId,
+  refreshKey,
+  onSearch,
+}: {
+  selectedId: number | null
+  refreshKey: string
+  onSearch: () => void
+}) {
+  const [detail, setDetail] = useState<InventoryMinerDetail | null>(null)
+  const [detailError, setDetailError] = useState("")
+  const [detailRefresh, setDetailRefresh] = useState(0)
+  const [tab, setTab] = useState<"overview" | "history">("overview")
+  useEffect(() => {
+    if (selectedId === null) return
+    const controller = new AbortController()
+    readInventory<InventoryMinerDetail>(
+      `/api/miners/${selectedId}`,
+      controller.signal
+    )
+      .then((result) => {
+        if (!controller.signal.aborted) setDetail(result)
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted)
+          setDetailError(
+            failure instanceof Error ? failure.message : "Miner unavailable."
+          )
+      })
+    return () => controller.abort()
+  }, [selectedId, detailRefresh, refreshKey])
+  function reload() {
+    setDetail(null)
+    setDetailError("")
+    setDetailRefresh((value) => value + 1)
+  }
+  if (selectedId === null)
+    return (
+      <section className="atlas-card atlas-selected-miner-empty">
+        <Cpu size={28} />
+        <h2>No miner selected</h2>
+        <p className="atlas-muted">
+          Find a miner from the dashboard to open its record here.
+        </p>
+        <button className="atlas-chip" onClick={onSearch}>
+          Find a miner
+        </button>
+      </section>
+    )
+  return (
+    <section
+      className="atlas-card atlas-selected-miner"
+      aria-labelledby="selected-miner-title"
+    >
+      <div className="atlas-section-header">
+        <div>
+          <p className="atlas-eyebrow">SELECTED MINER</p>
+          <h2 id="selected-miner-title">
+            {detail ? `Miner #${detail.identity}` : "Miner details"}
+          </h2>
+          <p className="atlas-muted">
+            {detail?.serial ?? "Recorded asset and component information"}
+          </p>
+        </div>
+        <div className="atlas-selected-miner-actions">
+          <button className="atlas-text-button" onClick={onSearch}>
+            <Search size={14} />
+            Find another miner
+          </button>
+          <button className="atlas-text-button" onClick={reload}>
+            <RefreshCw size={14} />
+            Refresh miner
+          </button>
+        </div>
+      </div>
+      {detailError ? (
+        <div className="atlas-miner-state" role="alert">
+          <p>{detailError}</p>
+          <button className="atlas-text-button" onClick={reload}>
+            Retry miner details
+          </button>
+        </div>
+      ) : !detail ? (
+        <p className="atlas-miner-state" role="status">
+          Loading miner details…
+        </p>
+      ) : (
+        <>
+          <nav
+            className="atlas-selected-miner-tabs"
+            aria-label="Miner record sections"
+          >
+            <button
+              aria-current={tab === "overview" ? "page" : undefined}
+              onClick={() => setTab("overview")}
+            >
+              Overview
+            </button>
+            <button
+              aria-current={tab === "history" ? "page" : undefined}
+              onClick={() => setTab("history")}
+            >
+              History
+            </button>
+          </nav>
+          <div className="atlas-selected-miner-body">
+            {tab === "overview" ? (
+              <>
+                <dl className="atlas-live-miner-fields">
+                  {[
+                    ["Serial label", detail.serial],
+                    ["Asset tag", detail.assetTag],
+                    ["Model", detail.model],
+                    ["Owner", detail.owner],
+                    ["Managed by", detail.manager],
+                    ["Current physical location", detail.location?.label],
+                    ["Miner IP", detail.ip],
+                    ["Last API IP", detail.lastApiIp],
+                    ["Control board MAC", detail.controlBoard?.mac],
+                    ["Firmware version", detail.controlBoard?.firmware],
+                    [
+                      "Reserved deployment slot",
+                      detail.reservation
+                        ? `${detail.reservation.location} · ${detail.reservation.switch} / Port ${detail.reservation.port}`
+                        : null,
+                    ],
+                    ["Created", timestamp(detail.createdAt)],
+                    ["Updated", timestamp(detail.updatedAt)],
+                  ].map(([label, value]) => (
+                    <div key={label}>
+                      <dt>{label}</dt>
+                      <dd>{value ?? "Not recorded"}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <section className="atlas-live-miner-section">
+                  <h3>Installed components</h3>
+                  <div className="atlas-table-scroll">
+                    <table className="atlas-miner-table">
+                      <thead>
+                        <tr>
+                          <th>Part / position</th>
+                          <th>Component ID</th>
+                          <th>Serial number</th>
+                          <th>Condition</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { label: "Skeleton", part: detail.skeleton },
+                          { label: "Control board", part: detail.controlBoard },
+                          ...[1, 2, 3].map((position) => ({
+                            label: `Hashboard ${position}`,
+                            part: detail.boards.find(
+                              (board) => board.position === `SLOT_${position}`
+                            ),
+                          })),
+                        ].map(({ label, part }) => (
+                          <tr key={label}>
+                            <td>{label}</td>
+                            <td>{part ? `#${part.id}` : "Not assigned"}</td>
+                            <td>{part?.serial ?? "Not recorded"}</td>
+                            <td>{part?.condition.toLowerCase() ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="atlas-muted">
+                    Positions without an assignment are empty in Atlas; this
+                    does not indicate a hardware fault.
+                  </p>
+                </section>
+                <p className="atlas-inline-notice">
+                  Live hash rate, temperature, and online status are not
+                  connected. Inventory condition is not a live health reading.
+                </p>
+              </>
+            ) : (
+              <>
+                <section className="atlas-live-miner-section">
+                  <h3>Movement history · {detail.movementCount} total</h3>
+                  <p className="atlas-muted">
+                    Latest 20 records · Central Time
+                  </p>
+                  {!detail.movements.length ? (
+                    <p>No movements recorded.</p>
+                  ) : (
+                    <ol className="atlas-live-miner-events">
+                      {detail.movements.map((movement) => (
+                        <li key={movement.id}>
+                          <strong>{movement.reason}</strong>
+                          <time dateTime={movement.occurredAt}>
+                            {timestamp(movement.occurredAt)}
+                          </time>
+                          <p>
+                            {movement.from} → {movement.to}
+                          </p>
+                          <p>Recorded by {movement.by}</p>
+                          {movement.notes && <p>{movement.notes}</p>}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
+                <section className="atlas-live-miner-section">
+                  <h3>
+                    Component and asset history · {detail.eventCount} total
+                  </h3>
+                  <p className="atlas-muted">
+                    Latest 20 entries · Central Time
+                  </p>
+                  {!detail.events.length ? (
+                    <p>No asset history recorded.</p>
+                  ) : (
+                    <ol className="atlas-live-miner-events">
+                      {detail.events.map((event) => (
+                        <li key={event.id}>
+                          <strong>{event.kind}</strong>
+                          <time dateTime={event.occurredAt}>
+                            {timestamp(event.occurredAt)}
+                          </time>
+                          {event.component && <p>{event.component}</p>}
+                          <p>Recorded by {event.by}</p>
+                          {event.notes && <p>{event.notes}</p>}
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
+              </>
+            )}
+          </div>
+        </>
+      )}
+    </section>
   )
 }

@@ -957,3 +957,86 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Dashboard search opens an inline miner record after selection. */
+.atlas-dashboard-miner-search {
+  flex: 1;
+  min-width: 0;
+  max-width: 900px;
+}
+.atlas-dashboard-miner-search .atlas-directory-filters {
+  padding: 0;
+  gap: 8px;
+}
+.atlas-dashboard-miner-search .atlas-directory-search {
+  flex-basis: 260px;
+}
+.atlas-page-heading:has(.atlas-dashboard-miner-search) {
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.atlas-miner-search-dialog {
+  width: min(1200px, calc(100vw - 32px));
+  max-height: calc(100svh - 48px);
+  overflow: auto;
+}
+.atlas-miner-search-dialog .atlas-details-dialog-header {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+}
+.atlas-selected-miner > .atlas-section-header {
+  padding: 24px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.atlas-selected-miner h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+.atlas-selected-miner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.atlas-selected-miner-tabs {
+  display: flex;
+  gap: 24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+.atlas-selected-miner-tabs button {
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  border-bottom: 2px solid transparent;
+}
+.atlas-selected-miner-tabs button[aria-current="page"] {
+  border-color: var(--atlas-blue);
+  color: var(--foreground);
+}
+.atlas-selected-miner-body {
+  padding: 0 24px 24px;
+}
+.atlas-selected-miner-empty {
+  padding: 40px;
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+@media (max-width: 1100px) {
+  .atlas-dashboard-miner-search {
+    flex-basis: 100%;
+    order: 1;
+    max-width: none;
+  }
+}
+@media (max-width: 650px) {
+  .atlas-selected-miner-actions {
+    gap: 14px;
+  }
+  .atlas-selected-miner-body {
+    padding: 0 16px 16px;
+  }
+}

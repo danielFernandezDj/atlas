@@ -12,7 +12,10 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { DashboardData } from "@/lib/dashboard/contracts"
-import { LiveMinerWorkspace } from "./technician/live-miner-workspace"
+import {
+  LiveMinerWorkspace,
+  MinerInventorySearch,
+} from "./technician/live-miner-workspace"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
@@ -44,6 +47,7 @@ export function TechnicianDashboard({
   viewer,
 }: TechnicianDashboardProps) {
   const [view, setView] = useState<View>("dashboard")
+  const [selectedMinerId, setSelectedMinerId] = useState<number | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const { sites, selectedSite } = dashboard
@@ -125,12 +129,25 @@ export function TechnicianDashboard({
         </header>
         <main className="atlas-main" aria-busy={pending}>
           <div className="atlas-page-heading">
+            {view === "dashboard" && (
+              <MinerInventorySearch
+                key={selectedSite?.id ?? "all"}
+                sites={sites}
+                initialSite={selectedSite?.id ?? null}
+                onSelect={(id) => {
+                  setSelectedMinerId(id)
+                  setView("miners")
+                }}
+              />
+            )}
             <div>
               <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
               <h1>{titles[view]}</h1>
               <p className="atlas-muted">
-                {selectedSite?.description ??
-                  "Site inventory and recent recorded movements."}
+                {view === "miners"
+                  ? "Selected miner identity, components and recorded history."
+                  : (selectedSite?.description ??
+                    "Site inventory and recent recorded movements.")}
               </p>
             </div>
           </div>
@@ -181,9 +198,9 @@ export function TechnicianDashboard({
           )}
           {view === "miners" && (
             <LiveMinerWorkspace
-              key={selectedSite?.id ?? "all"}
-              sites={sites}
-              initialSite={selectedSite?.id ?? null}
+              key={`${selectedMinerId ?? "none"}-${dashboard.loadedAt}`}
+              selectedId={selectedMinerId}
+              onSearch={() => setView("dashboard")}
               refreshKey={dashboard.loadedAt}
             />
           )}
