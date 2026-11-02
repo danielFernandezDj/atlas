@@ -896,3 +896,64 @@
     grid-template-columns: 1fr;
   }
 }
+
+.atlas-live-miner-detail {
+  width: min(1100px, calc(100vw - 32px));
+}
+.atlas-live-miner-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.atlas-live-miner-fields dt {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+.atlas-live-miner-fields dd {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.atlas-live-miner-section {
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+.atlas-live-miner-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.atlas-live-miner-section > p {
+  font-size: 12px;
+  margin: 8px 0;
+}
+.atlas-live-miner-events {
+  padding: 0;
+  margin-top: 16px;
+  list-style: none;
+}
+.atlas-live-miner-events li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.atlas-live-miner-events strong {
+  display: block;
+  text-transform: capitalize;
+}
+.atlas-live-miner-events time {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin: 4px 0;
+}
+.atlas-live-miner-events p {
+  margin-top: 5px;
+}
+@media (max-width: 650px) {
+  .atlas-live-miner-fields {
+    grid-template-columns: 1fr;
+  }
+}

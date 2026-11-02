@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { DashboardData } from "@/lib/dashboard/contracts"
+import { LiveMinerWorkspace } from "./technician/live-miner-workspace"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
@@ -178,7 +179,15 @@ export function TechnicianDashboard({
               </footer>
             </>
           )}
-          {view !== "dashboard" && (
+          {view === "miners" && (
+            <LiveMinerWorkspace
+              key={selectedSite?.id ?? "all"}
+              sites={sites}
+              initialSite={selectedSite?.id ?? null}
+              refreshKey={dashboard.loadedAt}
+            />
+          )}
+          {view !== "dashboard" && view !== "miners" && (
             <section
               className="atlas-card"
               aria-label={`${titles[view]} availability`}
@@ -188,11 +197,9 @@ export function TechnicianDashboard({
               <h2>
                 {view === "site-map"
                   ? "No site configuration loaded"
-                  : view === "miners"
-                    ? "No miner inventory loaded"
-                    : view === "actions"
-                      ? "Actions unavailable"
-                      : "No profile loaded"}
+                  : view === "actions"
+                    ? "Actions unavailable"
+                    : "No profile loaded"}
               </h2>
               <p className="atlas-muted">
                 {view === "site-map"
