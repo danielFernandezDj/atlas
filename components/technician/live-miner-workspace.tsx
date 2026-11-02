@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Cpu,
@@ -122,6 +123,7 @@ export function MinerInventorySearch({
   }
   return (
     <div className="atlas-dashboard-miner-search">
+      <p className="atlas-miner-search-caption">Find a miner</p>
       <form className="atlas-directory-filters" onSubmit={search}>
         <label className="atlas-directory-search">
           <Search size={16} aria-hidden="true" />
@@ -134,7 +136,7 @@ export function MinerInventorySearch({
             placeholder="Miner ID, serial, MAC, company…"
           />
         </label>
-        <label>
+        <label className="atlas-miner-search-select">
           <span className="sr-only">Inventory site filter</span>
           <select
             aria-label="Inventory site filter"
@@ -162,8 +164,9 @@ export function MinerInventorySearch({
               </option>
             ))}
           </select>
+          <ChevronDown size={14} aria-hidden="true" />
         </label>
-        <label>
+        <label className="atlas-miner-search-select">
           <span className="sr-only">Inventory location kind</span>
           <select
             aria-label="Inventory location kind"
@@ -185,8 +188,14 @@ export function MinerInventorySearch({
             ))}
             <option value="UNASSIGNED">Location not assigned</option>
           </select>
+          <ChevronDown size={14} aria-hidden="true" />
         </label>
-        <button ref={searchButton} type="submit" className="atlas-chip">
+        <button
+          ref={searchButton}
+          type="submit"
+          className="atlas-miner-search-submit"
+        >
+          <Search size={15} aria-hidden="true" />
           Search
         </button>
       </form>

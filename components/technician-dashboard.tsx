@@ -129,6 +129,16 @@ export function TechnicianDashboard({
         </header>
         <main className="atlas-main" aria-busy={pending}>
           <div className="atlas-page-heading">
+            <div>
+              <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
+              <h1>{titles[view]}</h1>
+              <p className="atlas-muted">
+                {view === "miners"
+                  ? "Selected miner identity, components and recorded history."
+                  : (selectedSite?.description ??
+                    "Site inventory and recent recorded movements.")}
+              </p>
+            </div>
             {view === "dashboard" && (
               <MinerInventorySearch
                 key={selectedSite?.id ?? "all"}
@@ -140,16 +150,6 @@ export function TechnicianDashboard({
                 }}
               />
             )}
-            <div>
-              <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
-              <h1>{titles[view]}</h1>
-              <p className="atlas-muted">
-                {view === "miners"
-                  ? "Selected miner identity, components and recorded history."
-                  : (selectedSite?.description ??
-                    "Site inventory and recent recorded movements.")}
-              </p>
-            </div>
           </div>
           {view === "dashboard" && (
             <>

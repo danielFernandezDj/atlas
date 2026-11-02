@@ -960,19 +960,88 @@
 
 /* Dashboard search opens an inline miner record after selection. */
 .atlas-dashboard-miner-search {
-  flex: 1;
+  flex: 0 1 860px;
   min-width: 0;
-  max-width: 900px;
+  margin-left: auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 2px 3px #00000002;
+}
+.atlas-miner-search-caption {
+  margin: 0 0 9px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
 }
 .atlas-dashboard-miner-search .atlas-directory-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 145px 155px 100px;
   padding: 0;
   gap: 8px;
 }
 .atlas-dashboard-miner-search .atlas-directory-search {
-  flex-basis: 260px;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 7px;
+}
+.atlas-dashboard-miner-search .atlas-directory-search input {
+  font-size: 12px;
+}
+.atlas-miner-search-select {
+  position: relative;
+  min-width: 0;
+}
+.atlas-miner-search-select > svg {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.atlas-dashboard-miner-search .atlas-miner-search-select select {
+  appearance: none;
+  width: 100%;
+  max-width: none;
+  height: 42px;
+  border-radius: 7px;
+  padding: 0 30px 0 11px;
+  background: color-mix(in oklch, var(--muted) 45%, var(--card));
+  font-size: 11px;
+  transition: border-color 150ms;
+}
+.atlas-dashboard-miner-search .atlas-miner-search-select select:hover {
+  border-color: var(--muted-foreground);
+}
+.atlas-miner-search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 42px;
+  border: 1px solid var(--primary);
+  border-radius: 7px;
+  padding: 0 14px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px #00000015;
+  transition: filter 150ms;
+}
+.atlas-miner-search-submit:hover {
+  filter: brightness(1.15);
+}
+.atlas-miner-search-submit:active {
+  filter: brightness(0.95);
 }
 .atlas-page-heading:has(.atlas-dashboard-miner-search) {
-  gap: 32px;
+  gap: 28px;
   flex-wrap: wrap;
 }
 .atlas-miner-search-dialog {
@@ -1038,5 +1107,18 @@
   }
   .atlas-selected-miner-body {
     padding: 0 16px 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  .atlas-dashboard-miner-search .atlas-directory-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .atlas-dashboard-miner-search .atlas-directory-search {
+    grid-column: 1 / -1;
+  }
+  .atlas-dashboard-miner-search .atlas-miner-search-submit {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 }
