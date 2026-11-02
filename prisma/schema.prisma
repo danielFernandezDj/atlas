@@ -163,6 +163,8 @@ model miner {
   management_company_id Int
   current_location_id   Int?
   occupied_slot_id      Int?     @unique
+  miner_ip              String?
+  last_api_ip           String?
   version               Int      @default(0)
   dateCreated           DateTime @default(now()) @map("created_at")
   dateUpdated           DateTime @updatedAt @map("updated_at")
@@ -199,14 +201,15 @@ model skeleton {
 }
 
 model control_boards {
-  id            Int           @id @default(autoincrement())
-  miner_id      Int?          @unique
-  serial_number String?       @unique
+  id               Int           @id @default(autoincrement())
+  miner_id         Int?          @unique
+  serial_number    String?       @unique
   // Canonical lowercase colon-separated MAC; normalization is enforced in SQL.
-  mac_address   String        @unique
-  condition     ConditionKind @default(UNKNOWN)
-  dateCreated   DateTime      @default(now())
-  dateUpdated   DateTime      @updatedAt
+  mac_address      String        @unique
+  firmware_version Int
+  condition        ConditionKind @default(UNKNOWN)
+  dateCreated      DateTime      @default(now())
+  dateUpdated      DateTime      @updatedAt
 
   miner   miner?          @relation(fields: [miner_id], references: [id], onDelete: Restrict)
   history miner_history[]

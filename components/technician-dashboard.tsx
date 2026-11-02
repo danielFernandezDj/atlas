@@ -29,8 +29,15 @@ const titles: Record<View, string> = {
   account: "Account",
 }
 
+type TechnicianDashboardProps = {
+  sites: {
+    id: number
+    name: string
+  }[]
+}
+
 // The workspace has no operational data source yet. Do not fall back to demo fixtures.
-export function TechnicianDashboard() {
+export function TechnicianDashboard({ sites }: TechnicianDashboardProps) {
   const [view, setView] = useState<View>("dashboard")
   return (
     <div className="atlas-workspace">
