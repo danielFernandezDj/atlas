@@ -163,8 +163,10 @@ model miner {
   management_company_id Int
   current_location_id   Int?
   occupied_slot_id      Int?     @unique
-  miner_ip              String?
-  last_api_ip           String?
+  // Current reported miner address; never used as permanent miner identity.
+  miner_ip              String?  @db.Inet
+  // Last address used to contact the miner API.
+  last_api_ip           String?  @db.Inet
   version               Int      @default(0)
   dateCreated           DateTime @default(now()) @map("created_at")
   dateUpdated           DateTime @updatedAt @map("updated_at")
@@ -206,7 +208,7 @@ model control_boards {
   serial_number    String?       @unique
   // Canonical lowercase colon-separated MAC; normalization is enforced in SQL.
   mac_address      String        @unique
-  firmware_version Int
+  firmware_version String?
   condition        ConditionKind @default(UNKNOWN)
   dateCreated      DateTime      @default(now())
   dateUpdated      DateTime      @updatedAt

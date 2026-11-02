@@ -111,3 +111,24 @@ migration chain to populated old-schema fixtures. No configured Neon database is
 used. Before deployment, apply the migration to an isolated Neon branch and test
 the future production adapter there. This change prepares a migration; it does
 not apply it to the configured database or connect the network collector.
+
+## Firmware and network address fields
+
+`control_boards.firmware_version` is nullable text. Unknown firmware is null;
+version labels such as `24.03-build.2` are stored without numeric conversion.
+Changing firmware on an installed board uses the existing component history and
+audit triggers. Existing numeric values are preserved as text by the correction
+migration; already-applied migration files remain unchanged.
+
+`miner.miner_ip` is the currently reported address. `last_api_ip` is the last
+address used to contact that miner's API. Both are nullable PostgreSQL `inet`
+fields accepting IPv4 and IPv6, and neither identifies the permanent asset.
+The correction migration converts values in place, treats blank/whitespace-only
+addresses as unknown, and aborts atomically for any invalid nonblank address.
+IP observation timestamps can be added with the future network collector.
+
+The migration suite now applies every migration through the latest schema before
+checking installation invariants. It separately exercises upgrades with existing
+firmware/IP data and rollback on invalid addresses. The old architectural backup
+is retained as `docs/archive/schema-before-component-inventory.prisma.txt` and is
+not an active Prisma schema.

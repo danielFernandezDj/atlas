@@ -34,6 +34,7 @@ test(
   { timeout: 120000 },
   async (t) => {
     const db = new PGlite()
+    await db.waitReady
     const query = (sql, args) => db.query(sql, args)
     const rejects = (sql, pattern) => assert.rejects(query(sql), pattern)
     try {
@@ -55,6 +56,18 @@ test(
           "utf8"
         )
       )
+
+      // Exercise the full chain, including migrations added after inventory.
+      for (const name of (await readdir(join(root, "prisma/migrations")))
+        .filter((name) => /^\d/.test(name) && name > migrationName)
+        .sort()) {
+        await db.exec(
+          await readFile(
+            join(root, "prisma/migrations", name, "migration.sql"),
+            "utf8"
+          )
+        )
+      }
 
       await t.test(
         "existing assets, ownership, timestamps and movements survive",
@@ -353,6 +366,63 @@ test(
           )
         }
       )
+      await t.test(
+        "firmware may be unknown or a version label; both IP fields validate IPv4/IPv6",
+        async () => {
+          assert.equal(
+            (
+              await query(
+                `SELECT firmware_version FROM control_boards WHERE miner_id=10`
+              )
+            ).rows[0].firmware_version,
+            null
+          )
+          await query(
+            `UPDATE control_boards SET firmware_version='24.03-build.2' WHERE miner_id=10`
+          )
+          assert.equal(
+            (
+              await query(
+                `SELECT firmware_version FROM control_boards WHERE miner_id=10`
+              )
+            ).rows[0].firmware_version,
+            "24.03-build.2"
+          )
+          assert.equal(
+            (
+              await query(
+                `SELECT details->'after'->>'firmware_version' AS firmware FROM miner_history WHERE control_board_id=(SELECT id FROM control_boards WHERE miner_id=10) ORDER BY id DESC LIMIT 1`
+              )
+            ).rows[0].firmware,
+            "24.03-build.2"
+          )
+          await query(
+            `UPDATE control_boards SET firmware_version=NULL WHERE miner_id=10`
+          )
+          await query(
+            `UPDATE miners SET miner_ip='192.0.2.10',last_api_ip='2001:db8::10' WHERE id=10`
+          )
+          assert.deepEqual(
+            (
+              await query(
+                `SELECT host(miner_ip) AS miner_ip,host(last_api_ip) AS last_api_ip FROM miners WHERE id=10`
+              )
+            ).rows[0],
+            { miner_ip: "192.0.2.10", last_api_ip: "2001:db8::10" }
+          )
+          await rejects(
+            `UPDATE miners SET miner_ip='not-an-address' WHERE id=10`,
+            /inet/
+          )
+          await rejects(
+            `UPDATE miners SET last_api_ip='999.999.999.999' WHERE id=10`,
+            /inet/
+          )
+          await query(
+            `UPDATE miners SET miner_ip=NULL,last_api_ip=NULL WHERE id=10`
+          )
+        }
+      )
     } finally {
       await db.close()
     }
@@ -364,6 +434,7 @@ test(
   { timeout: 120000 },
   async () => {
     const db = new PGlite()
+    await db.waitReady
     try {
       const migrations = (await readdir(join(root, "prisma/migrations")))
         .filter((name) => name < migrationName && /^\d/.test(name))
@@ -406,6 +477,72 @@ test(
           )
         ).rows[0].n,
         0
+      )
+    } finally {
+      await db.close()
+    }
+  }
+)
+
+test(
+  "firmware/IP correction preserves populated data and rolls back invalid IPs",
+  { timeout: 120000 },
+  async () => {
+    const db = new PGlite()
+    await db.waitReady
+    const correction = "20261102033300_optional_firmware_and_inet_addresses"
+    try {
+      for (const name of (await readdir(join(root, "prisma/migrations")))
+        .filter((name) => /^\d/.test(name) && name < correction)
+        .sort()) {
+        if (name === migrationName) await db.exec(originalFixture)
+        await db.exec(
+          await readFile(
+            join(root, "prisma/migrations", name, "migration.sql"),
+            "utf8"
+          )
+        )
+      }
+      await db.exec(`INSERT INTO control_boards (miner_id,mac_address,firmware_version,"dateUpdated") VALUES (10,'AA:BB:CC:DD:EE:FF',42,now());
+      UPDATE miners SET miner_ip='not-an-address',last_api_ip='2001:db8::1' WHERE id=10;`)
+      const migration = await readFile(
+        join(root, "prisma/migrations", correction, "migration.sql"),
+        "utf8"
+      )
+      await assert.rejects(db.exec(migration), /inet/)
+      await db.exec("ROLLBACK")
+      assert.equal(
+        (
+          await db.query(
+            `SELECT firmware_version FROM control_boards WHERE miner_id=10`
+          )
+        ).rows[0].firmware_version,
+        42
+      )
+      assert.equal(
+        (await db.query(`SELECT miner_ip FROM miners WHERE id=10`)).rows[0]
+          .miner_ip,
+        "not-an-address"
+      )
+      await db.exec(
+        `UPDATE miners SET miner_ip='192.0.2.1',last_api_ip='2001:db8::1' WHERE id=10`
+      )
+      await db.exec(migration)
+      assert.equal(
+        (
+          await db.query(
+            `SELECT firmware_version FROM control_boards WHERE miner_id=10`
+          )
+        ).rows[0].firmware_version,
+        "42"
+      )
+      assert.deepEqual(
+        (
+          await db.query(
+            `SELECT host(miner_ip) AS miner_ip,host(last_api_ip) AS last_api_ip FROM miners WHERE id=10`
+          )
+        ).rows[0],
+        { miner_ip: "192.0.2.1", last_api_ip: "2001:db8::1" }
       )
     } finally {
       await db.close()
