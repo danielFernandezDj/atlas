@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "miners" ALTER COLUMN "version" DROP NOT NULL,
+ALTER COLUMN "version" DROP DEFAULT,
+ALTER COLUMN "version" SET DATA TYPE TEXT;
