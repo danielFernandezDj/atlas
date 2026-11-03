@@ -99,6 +99,34 @@ export function LiveMinerOverview({ miner }: { miner: InventoryMinerDetail }) {
           </div>
         </section>
       </div>
+      {miner.registration && (
+        <section className="atlas-instrument atlas-registration-summary">
+          <h3>
+            Registered as{" "}
+            {miner.registration.state === "READY"
+              ? "Ready for installation"
+              : "Scrap"}
+          </h3>
+          <p className="atlas-muted">
+            {miner.registration.by} ·{" "}
+            {new Date(miner.registration.occurredAt).toLocaleString("en-US", {
+              timeZone: "America/Chicago",
+            })}{" "}
+            CT
+          </p>
+          {miner.registration.componentConfirmation && (
+            <p>
+              At registration, the technician acknowledged the skeleton, one
+              control board and three hashboards
+              {miner.registration.componentConfirmation.powerSupplyPresent
+                ? ", with a power supply"
+                : ""}
+              . This is a presence confirmation; individual component identities
+              are recorded separately.
+            </p>
+          )}
+        </section>
+      )}
       <div className="atlas-hashboard-grid">
         {[1, 2, 3].map((number) => {
           const board = miner.boards.find(

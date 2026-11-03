@@ -22,22 +22,32 @@ const contractUrl = uri(
     JSON.stringify(pathToFileURL(require.resolve("zod")).href)
   )
 )
-const { actionSchema, insertSchema, ActionError, canWriteInventory } =
-  await import(contractUrl)
+const {
+  actionSchema,
+  insertSchema,
+  createBatchSchema,
+  creationEntrySchema,
+  ActionError,
+  canWriteInventory,
+} = await import(contractUrl)
 const readerUrl = uri(
   (await compile("../lib/inventory-actions/read.ts")).replace(
     '"./contracts"',
     JSON.stringify(contractUrl)
   )
 )
-const { performInventoryAction, performInsertBatch, placementKey } =
-  await import(
-    uri(
-      (await compile("../lib/inventory-actions/write.ts"))
-        .replace('"./contracts"', JSON.stringify(contractUrl))
-        .replace('"./read"', JSON.stringify(readerUrl))
-    )
+const {
+  performInventoryAction,
+  performInsertBatch,
+  performCreateBatch,
+  placementKey,
+} = await import(
+  uri(
+    (await compile("../lib/inventory-actions/write.ts"))
+      .replace('"./contracts"', JSON.stringify(contractUrl))
+      .replace('"./read"', JSON.stringify(readerUrl))
   )
+)
 const move = {
   kind: "move",
   minerId: 1,
@@ -291,7 +301,10 @@ test("new miners use fixed companies and reject caller-supplied assignments", as
   const create = {
     kind: "create",
     skeletonSerial: "NEW-SERIAL",
-    locationId: 1,
+    registrationState: "READY",
+    palletId: null,
+    componentConfirmation: null,
+    powerSupplyPresent: false,
     modelId: null,
     assetTag: null,
     notes: "Register miner",
@@ -466,4 +479,310 @@ test("a port reserved after selection rejects and rolls back the whole batch", a
   const before = db.snapshot()
   await assert.rejects(performInsertBatch(db, 1, batch), /occupied, reserved/)
   assert.deepEqual(db.snapshot(), before)
+})
+
+const readyCreation = {
+  skeletonSerial: "READY-1",
+  registrationState: "READY",
+  palletId: null,
+  componentConfirmation: null,
+  powerSupplyPresent: false,
+  modelId: null,
+  assetTag: null,
+  notes: "",
+}
+const confirmedParts = {
+  skeleton: true,
+  controlBoard: true,
+  hashboard1: true,
+  hashboard2: true,
+  hashboard3: true,
+  acknowledged: true,
+}
+const scrapCreation = {
+  ...readyCreation,
+  skeletonSerial: "SCRAP-1",
+  registrationState: "SCRAP",
+  palletId: 201,
+  componentConfirmation: confirmedParts,
+}
+const creationBatch = {
+  kind: "create-batch",
+  entries: [readyCreation, scrapCreation],
+  submissionKey: move.submissionKey,
+  notes: "",
+}
+test("ready creation has no destination; scrap requires a pallet and every authenticated acknowledgment field", () => {
+  assert.equal(creationEntrySchema.safeParse(readyCreation).success, true)
+  assert.equal(creationEntrySchema.safeParse(scrapCreation).success, true)
+  for (const input of [
+    { ...readyCreation, palletId: 201 },
+    { ...readyCreation, componentConfirmation: confirmedParts },
+    { ...scrapCreation, palletId: null },
+    { ...scrapCreation, componentConfirmation: null },
+  ])
+    assert.equal(creationEntrySchema.safeParse(input).success, false)
+  for (const key of Object.keys(confirmedParts))
+    assert.equal(
+      creationEntrySchema.safeParse({
+        ...scrapCreation,
+        componentConfirmation: { ...confirmedParts, [key]: false },
+      }).success,
+      false
+    )
+  assert.equal(
+    creationEntrySchema.safeParse({
+      ...scrapCreation,
+      componentConfirmation: { ...confirmedParts, confirmedByUserId: 999 },
+    }).success,
+    false
+  )
+  assert.equal(createBatchSchema.safeParse(creationBatch).success, true)
+  assert.equal(
+    createBatchSchema.safeParse({ ...creationBatch, entries: [] }).success,
+    false
+  )
+  assert.equal(
+    createBatchSchema.safeParse({
+      ...creationBatch,
+      entries: [scrapCreation, scrapCreation],
+    }).success,
+    false
+  )
+  assert.equal(
+    createBatchSchema.safeParse({
+      ...creationBatch,
+      entries: Array(26).fill(readyCreation),
+    }).success,
+    false
+  )
+  assert.equal(
+    createBatchSchema.safeParse({
+      ...creationBatch,
+      entries: [scrapCreation, { ...scrapCreation, skeletonSerial: "SCRAP-2" }],
+    }).success,
+    true
+  )
+})
+function creationInventory() {
+  let state = {
+    miners: [],
+    skeletons: [],
+    history: [],
+    movements: [],
+    audits: [],
+  }
+  return {
+    snapshot: () => structuredClone(state),
+    $transaction: async (fn) => {
+      const draft = structuredClone(state)
+      const tx = {
+        $queryRaw: async () => [],
+        users: {
+          findUnique: async () => ({ is_active: true, role: "TECHNICIAN" }),
+        },
+        companies: {
+          findMany: async () => [
+            { id: 1, name: "Ionic" },
+            { id: 2, name: "DigitalCarpenter.io" },
+          ],
+        },
+        audit_log: {
+          findFirst: async (q) =>
+            draft.audits.find(
+              (a) => a.details.submissionKey === q.where.details.equals
+            ) ?? null,
+          create: async ({ data }) => draft.audits.push(data),
+        },
+        miner: {
+          findUnique: async ({ where }) =>
+            draft.miners.find((m) => m.serial_number === where.serial_number) ??
+            null,
+          create: async ({ data }) => {
+            const m = { id: draft.miners.length + 1, ...data }
+            draft.miners.push(m)
+            return { id: m.id }
+          },
+        },
+        skeleton: {
+          findUnique: async ({ where }) =>
+            draft.skeletons.find(
+              (s) => s.serial_number === where.serial_number
+            ) ?? null,
+          create: async ({ data }) =>
+            draft.skeletons.push({
+              id: draft.skeletons.length + 1,
+              condition: "UNKNOWN",
+              ...data,
+            }),
+        },
+        locations: {
+          findUnique: async ({ where }) => ({
+            id: where.id,
+            kind: where.id === 201 ? "PALLET" : "DEPLOYMENT_SLOT",
+            is_active: true,
+            site: { is_active: true },
+            building: null,
+            can: null,
+            current_miners: [{ id: 99 }],
+            slot_occupant: null,
+            ports: [],
+          }),
+        },
+        miner_history: { create: async ({ data }) => draft.history.push(data) },
+        miner_movements: {
+          create: async ({ data }) => draft.movements.push(data),
+        },
+        get control_boards() {
+          throw new Error("Do not invent a board MAC or serial")
+        },
+        get hash_boards() {
+          throw new Error("Do not invent board identities")
+        },
+        get port_index() {
+          throw new Error("Creation must not reserve deployment ports")
+        },
+      }
+      const result = await fn(tx)
+      state = draft
+      return result
+    },
+  }
+}
+test("mixed creation records ready miners without location and scrap with pallet and attributable presence confirmations", async () => {
+  const db = creationInventory()
+  const result = await performCreateBatch(db, 7, creationBatch)
+  assert.deepEqual(result.minerIds, [1, 2])
+  const state = db.snapshot()
+  assert.equal(state.miners[0].current_location_id, null)
+  assert.equal(state.miners[0].occupied_slot_id, null)
+  assert.equal(state.miners[1].current_location_id, 201)
+  assert.equal(state.miners[1].occupied_slot_id, null)
+  assert.equal(state.movements.length, 1)
+  assert.equal(state.history[0].details.registrationState, "READY")
+  const ack = state.history[1].details.componentConfirmation
+  for (const key of Object.keys(confirmedParts)) assert.equal(ack[key], true)
+  assert.equal(state.history[1].user_id, 7)
+  assert.equal(ack.confirmedByUserId, 7)
+  assert.equal(ack.statementVersion, "scrap-assembly-v1")
+  assert.equal(ack.identifiersRecorded, false)
+  assert.ok(Number.isFinite(Date.parse(ack.confirmedAt)))
+  assert.equal(
+    state.skeletons.every((s) => s.condition === "UNKNOWN"),
+    true
+  )
+  assert.deepEqual(await performCreateBatch(db, 7, creationBatch), result)
+  assert.deepEqual(db.snapshot(), state)
+})
+test("multiple scrap miners can share an already populated active pallet", async () => {
+  const db = creationInventory()
+  await performCreateBatch(db, 7, {
+    ...creationBatch,
+    entries: [
+      scrapCreation,
+      { ...scrapCreation, skeletonSerial: "SCRAP-2", powerSupplyPresent: true },
+    ],
+  })
+  assert.deepEqual(
+    db.snapshot().miners.map((m) => m.current_location_id),
+    [201, 201]
+  )
+  assert.equal(
+    db.snapshot().history[1].details.componentConfirmation.powerSupplyPresent,
+    true
+  )
+})
+test("a bad scrap pallet rolls back earlier ready registrations and their receipts", async () => {
+  const db = creationInventory(),
+    before = db.snapshot()
+  await assert.rejects(
+    performCreateBatch(db, 7, {
+      ...creationBatch,
+      entries: [readyCreation, { ...scrapCreation, palletId: 999 }],
+    }),
+    /active pallet/
+  )
+  assert.deepEqual(db.snapshot(), before)
+})
+test("duplicate serials are rejected on the server even when an earlier availability check succeeded", async () => {
+  const db = creationInventory()
+  await performCreateBatch(db, 7, creationBatch)
+  const before = db.snapshot()
+  await assert.rejects(
+    performCreateBatch(db, 7, {
+      ...creationBatch,
+      submissionKey: "00000000-0000-4000-8000-000000000009",
+    }),
+    /already assigned|serial number already belongs/
+  )
+  assert.deepEqual(db.snapshot(), before)
+})
+test("scrap registration blocks later deployment", async () => {
+  const db = {
+    $transaction: async (fn) =>
+      fn({
+        $queryRaw: async () => [],
+        users: {
+          findUnique: async () => ({ is_active: true, role: "TECHNICIAN" }),
+        },
+        audit_log: { findFirst: async () => null },
+        miner: {
+          findUnique: async () => ({
+            id: 1,
+            version: 0,
+            current_location_id: 201,
+            history: [{ id: 1 }],
+          }),
+        },
+        locations: {
+          findUnique: async () => ({
+            id: 11,
+            kind: "DEPLOYMENT_SLOT",
+            is_active: true,
+            site: { is_active: true },
+            building: { is_active: true },
+            can: { is_active: true },
+          }),
+        },
+      }),
+  }
+  await assert.rejects(
+    performInventoryAction(db, 7, move),
+    /registered as scrap/
+  )
+})
+test("scrap pallet lookup includes shared occupied pallets while keeping active-site filtering", async () => {
+  const { readActionLocations } = await import(readerUrl)
+  let where
+  const pallet = {
+    id: 201,
+    name: "Scrap pallet",
+    code: "SCRAP",
+    kind: "PALLET",
+    is_active: true,
+    site: { is_active: true, name: "Rebel" },
+    building: null,
+    can: null,
+    row_index: null,
+    slot_index: null,
+    current_miners: [{ id: 99 }],
+    slot_occupant: null,
+    ports: [],
+  }
+  const result = await readActionLocations(
+    {
+      locations: {
+        count: async (args) => {
+          where = args.where
+          return 1
+        },
+        findMany: async () => [pallet],
+      },
+    },
+    new URLSearchParams({ site: "1", kind: "PALLET" }),
+    true
+  )
+  assert.equal(result.items[0].available, true)
+  assert.ok(!JSON.stringify(where.AND).includes("current_miners"))
+  assert.ok(JSON.stringify(where.AND).includes("PALLET"))
 })

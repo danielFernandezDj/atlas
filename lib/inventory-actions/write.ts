@@ -6,6 +6,7 @@ import {
   canWriteInventory,
   type InventoryCommand,
   type InsertCommand,
+  type CreateBatchCommand,
 } from "./contracts"
 import {
   locationSelect,
@@ -103,6 +104,14 @@ export async function applyInventoryAction(
         model_id: true,
         asset_tag: true,
         reserved_port: { select: { id: true, location_id: true } },
+        history: {
+          where: {
+            kind: "INITIAL_STATE",
+            details: { path: ["registrationState"], equals: "SCRAP" },
+          },
+          take: 1,
+          select: { id: true },
+        },
       },
     })
     if (!existing) throw new ActionError(404, "Miner not found.")
@@ -171,16 +180,35 @@ export async function applyInventoryAction(
     active: boolean
     switch: { active: boolean }
   } | null = null
-  if (input.kind !== "edit") {
+  if (
+    input.kind === "move" ||
+    (input.kind === "create" && input.registrationState === "SCRAP")
+  ) {
     destination = await tx.locations.findUnique({
-      where: { id: input.locationId },
+      where: {
+        id: input.kind === "create" ? input.palletId! : input.locationId,
+      },
       select: locationSelect,
     })
     if (!destination || !activeLocation(destination))
       throw new ActionError(409, "Choose an active destination location.")
     if (input.kind === "move" && sourceLocation === destination.id)
       throw new ActionError(409, "The miner is already at that location.")
-    if (!isLocationAvailable(destination))
+    if (input.kind === "create" && destination.kind !== "PALLET")
+      throw new ActionError(
+        400,
+        "Scrap miners must be assigned to an active pallet."
+      )
+    if (
+      input.kind === "move" &&
+      destination.kind === "DEPLOYMENT_SLOT" &&
+      (before?.history as unknown[] | undefined)?.length
+    )
+      throw new ActionError(
+        409,
+        "This miner was registered as scrap and cannot be deployed."
+      )
+    if (input.kind !== "create" && !isLocationAvailable(destination))
       throw new ActionError(
         409,
         "This location is occupied, reserved, inactive, or has no active port. Choose an available location."
@@ -228,9 +256,8 @@ export async function applyInventoryAction(
         owner_company_id: assignment!.owner.id,
         management_company_id: assignment!.manager.id,
         model_id: input.modelId,
-        current_location_id: destination!.id,
-        occupied_slot_id:
-          destination!.kind === "DEPLOYMENT_SLOT" ? destination!.id : null,
+        current_location_id: destination?.id ?? null,
+        occupied_slot_id: null,
       },
       select: { id: true },
     })
@@ -266,8 +293,20 @@ export async function applyInventoryAction(
         kind: "INITIAL_STATE",
         user_id: actorId,
         source: "MANUAL",
-        notes: input.notes,
+        notes: input.notes || null,
         details: {
+          registrationState: input.registrationState,
+          componentConfirmation: input.componentConfirmation
+            ? {
+                ...input.componentConfirmation,
+                confirmedByUserId: actorId,
+                confirmedAt: new Date().toISOString(),
+                statementVersion: "scrap-assembly-v1",
+                powerSupplyPresent: input.powerSupplyPresent,
+                identifiersRecorded: false,
+              }
+            : null,
+          palletId: input.palletId,
           skeletonSerial: input.skeletonSerial,
           ownerId: assignment!.owner.id,
           managerId: assignment!.manager.id,
@@ -390,10 +429,24 @@ export function placementKey(batchKey: string, index: number) {
   const hex = createHash("sha256").update(`${batchKey}:${index}`).digest("hex")
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
 }
-export async function performInsertBatch(
+export function performInsertBatch(
   db: Pick<PrismaClient, "$transaction">,
   actorId: number,
   input: InsertCommand
+) {
+  return performInventoryBatch(db, actorId, input)
+}
+export function performCreateBatch(
+  db: Pick<PrismaClient, "$transaction">,
+  actorId: number,
+  input: CreateBatchCommand
+) {
+  return performInventoryBatch(db, actorId, input)
+}
+async function performInventoryBatch(
+  db: Pick<PrismaClient, "$transaction">,
+  actorId: number,
+  input: InsertCommand | CreateBatchCommand
 ): Promise<ActionResult> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -433,34 +486,51 @@ export async function performInsertBatch(
             return d.result
           }
           const results: ActionResult[] = []
-          for (const [index, entry] of input.entries.entries()) {
-            const location = await tx.locations.findUnique({
-              where: { id: entry.locationId },
-              select: { kind: true },
-            })
-            if (location?.kind !== "DEPLOYMENT_SLOT")
-              throw new ActionError(
-                400,
-                "Insert miners requires deployment ports."
+          for (let index = 0; index < input.entries.length; index++) {
+            if (input.kind === "create-batch") {
+              results.push(
+                await applyInventoryAction(tx, actorId, {
+                  kind: "create",
+                  ...input.entries[index],
+                  submissionKey: placementKey(input.submissionKey, index),
+                })
               )
-            results.push(
-              await applyInventoryAction(tx, actorId, {
-                kind: "move",
-                ...entry,
-                notes: input.notes,
-                submissionKey: placementKey(input.submissionKey, index),
+            } else {
+              const entry = input.entries[index]
+              const location = await tx.locations.findUnique({
+                where: { id: entry.locationId },
+                select: { kind: true },
               })
-            )
+              if (location?.kind !== "DEPLOYMENT_SLOT")
+                throw new ActionError(
+                  400,
+                  "Insert miners requires deployment ports."
+                )
+              results.push(
+                await applyInventoryAction(tx, actorId, {
+                  kind: "move",
+                  ...entry,
+                  notes: input.notes,
+                  submissionKey: placementKey(input.submissionKey, index),
+                })
+              )
+            }
           }
           const result = {
             minerId: results[0].minerId,
             minerIds: results.map((r) => r.minerId),
-            message: `${results.length} miners inserted. Movement history and reservations updated.`,
+            message:
+              input.kind === "create-batch"
+                ? `${results.length} miners created. Registration history and scrap acknowledgments recorded.`
+                : `${results.length} miners inserted. Movement history and reservations updated.`,
           }
           await tx.audit_log.create({
             data: {
               user_id: actorId,
-              action: "MINER_INSERT_BATCH",
+              action:
+                input.kind === "create-batch"
+                  ? "MINER_CREATE_BATCH"
+                  : "MINER_INSERT_BATCH",
               entity_type: "miners",
               entity_id: result.minerId,
               details: {

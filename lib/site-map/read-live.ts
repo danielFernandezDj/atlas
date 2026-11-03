@@ -140,6 +140,7 @@ export async function readLiveCanMap(
         port: port
           ? {
               id: port.id,
+              active: port.active,
               number: port.port_number,
               switch: port.switch.name,
               observedMac: port.observed_mac,

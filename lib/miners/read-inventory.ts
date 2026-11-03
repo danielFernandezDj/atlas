@@ -191,7 +191,7 @@ export async function readMinerInventory(
 }
 
 export async function readMinerInventoryDetail(
-  db: Pick<PrismaClient, "miner">,
+  db: Pick<PrismaClient, "miner" | "miner_history">,
   id: number
 ): Promise<InventoryMinerDetail | null> {
   const partSelect = { id: true, serial_number: true, condition: true } as const
@@ -240,6 +240,7 @@ export async function readMinerInventoryDetail(
         select: {
           id: true,
           kind: true,
+          details: true,
           source: true,
           notes: true,
           occurred_at: true,
@@ -260,6 +261,33 @@ export async function readMinerInventoryDetail(
     },
   })
   if (!miner) return null
+  const registration = await db.miner_history.findFirst({
+    where: {
+      miner_id: id,
+      kind: "INITIAL_STATE",
+      dateDeleted: null,
+      OR: [
+        { details: { path: ["registrationState"], equals: "READY" } },
+        { details: { path: ["registrationState"], equals: "SCRAP" } },
+      ],
+    },
+    orderBy: [{ occurred_at: "desc" }, { id: "desc" }],
+    select: { details: true, occurred_at: true, user: actor },
+  })
+  const registrationData = registration?.details as {
+    registrationState?: string
+    componentConfirmation?: {
+      skeleton?: boolean
+      controlBoard?: boolean
+      hashboard1?: boolean
+      hashboard2?: boolean
+      hashboard3?: boolean
+      acknowledged?: boolean
+      confirmedAt?: string
+      powerSupplyPresent?: boolean
+    }
+  } | null
+  const confirmation = registrationData?.componentConfirmation
   const partDto = (part: {
     id: number
     serial_number: string | null
@@ -274,6 +302,31 @@ export async function readMinerInventoryDetail(
       : `${source.toLowerCase()} integration`
   return {
     ...minerDto(miner),
+    registration:
+      registration &&
+      (registrationData?.registrationState === "READY" ||
+        registrationData?.registrationState === "SCRAP")
+        ? {
+            state: registrationData.registrationState,
+            by: who(registration.user, "MANUAL"),
+            occurredAt: registration.occurred_at.toISOString(),
+            componentConfirmation:
+              confirmation?.acknowledged &&
+              confirmation.skeleton &&
+              confirmation.controlBoard &&
+              confirmation.hashboard1 &&
+              confirmation.hashboard2 &&
+              confirmation.hashboard3 &&
+              typeof confirmation.confirmedAt === "string"
+                ? {
+                    hashboards: 3,
+                    powerSupplyPresent:
+                      confirmation.powerSupplyPresent === true,
+                    confirmedAt: confirmation.confirmedAt,
+                  }
+                : null,
+          }
+        : null,
     ip: miner.miner_ip,
     lastApiIp: miner.last_api_ip,
     createdAt: miner.dateCreated.toISOString(),
@@ -306,27 +359,49 @@ export async function readMinerInventoryDetail(
       notes: movement.notes,
       occurredAt: movement.occurred_at.toISOString(),
     })),
-    events: miner.history.map((event) => ({
-      id: event.id,
-      kind:
-        event.kind === "COMPONENT_UPDATED" &&
-        !event.skeleton_id &&
-        !event.control_board_id &&
-        !event.hash_board_id
-          ? "miner details updated"
-          : event.kind.replaceAll("_", " ").toLowerCase(),
-      component:
-        event.skeleton_id !== null
-          ? `Skeleton #${event.skeleton_id}`
-          : event.control_board_id !== null
-            ? `Control board #${event.control_board_id}`
-            : event.hash_board_id !== null
-              ? `Hashboard #${event.hash_board_id}${event.position ? ` · ${event.position.replace("SLOT_", "Position ")}` : ""}`
-              : null,
-      by: who(event.user, event.source),
-      notes: event.notes,
-      occurredAt: event.occurred_at.toISOString(),
-    })),
+    events: miner.history.map((event) => {
+      const details = event.details as {
+        scope?: string
+        operation?: string
+        gridCoordinate?: string
+      } | null
+      const portLabel =
+        details?.scope === "port_assignment"
+          ? (
+              {
+                disable: "Port disabled",
+                release: "Reservation released",
+                replace: "Miner replaced",
+                pull: "Miner pulled",
+                return: "Reserved miner returned",
+                add: "Miner added",
+                enable: "Port re-enabled",
+              } as Record<string, string>
+            )[details.operation ?? ""]
+          : null
+      return {
+        id: event.id,
+        kind: portLabel
+          ? `${portLabel}${details?.gridCoordinate ? ` · ${details.gridCoordinate}` : ""}`
+          : event.kind === "COMPONENT_UPDATED" &&
+              !event.skeleton_id &&
+              !event.control_board_id &&
+              !event.hash_board_id
+            ? "miner details updated"
+            : event.kind.replaceAll("_", " ").toLowerCase(),
+        component:
+          event.skeleton_id !== null
+            ? `Skeleton #${event.skeleton_id}`
+            : event.control_board_id !== null
+              ? `Control board #${event.control_board_id}`
+              : event.hash_board_id !== null
+                ? `Hashboard #${event.hash_board_id}${event.position ? ` · ${event.position.replace("SLOT_", "Position ")}` : ""}`
+                : null,
+        by: who(event.user, event.source),
+        notes: event.notes,
+        occurredAt: event.occurred_at.toISOString(),
+      }
+    }),
     movementCount: miner._count.movements,
     eventCount: miner._count.history,
   }

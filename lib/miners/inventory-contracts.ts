@@ -47,6 +47,17 @@ export type InventoryPart = {
   condition: string
 }
 export type InventoryMinerDetail = InventoryMiner & {
+  registration: {
+    state: "READY" | "SCRAP"
+    by: string
+    occurredAt: string
+    componentConfirmation: {
+      hashboards: number
+      powerSupplyPresent: boolean
+      confirmedAt: string
+    } | null
+  } | null
+
   ip: string | null
   lastApiIp: string | null
   createdAt: string
