@@ -182,7 +182,7 @@ export function BitcoinStrip() {
             ) : (
               <ChartNoAxesCombined size={15} aria-hidden="true" />
             )}
-            {expanded ? "Hide graph" : "Show graph"}
+            {expanded ? "Hide" : "Show"}
           </button>
         </>
       ) : (
