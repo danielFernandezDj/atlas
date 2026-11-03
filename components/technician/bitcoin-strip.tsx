@@ -1,7 +1,14 @@
 "use client"
 
-import { useEffect, useId, useState } from "react"
-import { Bitcoin, RefreshCw, TrendingDown, TrendingUp } from "lucide-react"
+import { useEffect, useId, useState, useSyncExternalStore } from "react"
+import {
+  Bitcoin,
+  ChartNoAxesCombined,
+  ChevronUp,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react"
 
 type Market = {
   price: number
@@ -10,7 +17,24 @@ type Market = {
   fetchedAt: string
   source: string
 }
+const largeScreenQuery = "(min-width: 1024px)"
+function subscribeToScreen(onChange: () => void) {
+  const media = window.matchMedia(largeScreenQuery)
+  media.addEventListener("change", onChange)
+  return () => media.removeEventListener("change", onChange)
+}
+const largeScreenSnapshot = () => window.matchMedia(largeScreenQuery).matches
+const serverScreenSnapshot = () => false
+
 export function BitcoinStrip() {
+  const largeScreen = useSyncExternalStore(
+    subscribeToScreen,
+    largeScreenSnapshot,
+    serverScreenSnapshot
+  )
+  const [expandedChoice, setExpandedChoice] = useState<boolean | null>(null)
+  const expanded = expandedChoice ?? largeScreen
+  const chartId = useId()
   const [market, setMarket] = useState<Market | null>(null)
   const [failed, setFailed] = useState(false)
   const [refresh, setRefresh] = useState(0)
@@ -52,6 +76,7 @@ export function BitcoinStrip() {
     <section
       className="atlas-card atlas-bitcoin"
       aria-label="Bitcoin market overview"
+      data-expanded={expanded}
     >
       <div className="atlas-bitcoin-label">
         <span className="atlas-bitcoin-icon">
@@ -66,7 +91,11 @@ export function BitcoinStrip() {
       </div>
       {market ? (
         <>
-          <div className={`atlas-btc-chart ${up ? "is-up" : "is-down"}`}>
+          <div
+            id={chartId}
+            hidden={!expanded}
+            className={`atlas-btc-chart ${up ? "is-up" : "is-down"}`}
+          >
             <svg
               viewBox="0 0 480 70"
               preserveAspectRatio="none"
@@ -141,6 +170,20 @@ export function BitcoinStrip() {
               CT
             </p>
           </div>
+          <button
+            type="button"
+            className="atlas-btc-toggle"
+            aria-expanded={expanded}
+            aria-controls={chartId}
+            onClick={() => setExpandedChoice(!expanded)}
+          >
+            {expanded ? (
+              <ChevronUp size={15} aria-hidden="true" />
+            ) : (
+              <ChartNoAxesCombined size={15} aria-hidden="true" />
+            )}
+            {expanded ? "Hide" : "Show"}
+          </button>
         </>
       ) : (
         <div className="atlas-market-loading" role="status">

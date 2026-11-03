@@ -167,7 +167,7 @@ model miner {
   miner_ip              String?  @db.Inet
   // Last address used to contact the miner API.
   last_api_ip           String?  @db.Inet
-  version               Int      @default(0)
+  version Int @default(0)
   dateCreated           DateTime @default(now()) @map("created_at")
   dateUpdated           DateTime @updatedAt @map("updated_at")
 

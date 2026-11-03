@@ -1,93 +1,161 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import {
   Cloud,
+  CloudFog,
   CloudLightning,
   CloudRain,
+  CloudSnow,
   Droplets,
+  RefreshCw,
   Sun,
   Wind,
 } from "lucide-react"
-import { type SiteId, siteName } from "@/lib/demo/technician"
-
-// Illustrative forecasts until real site locations and a weather feed are configured.
-type Forecast = {
-  condition: "Clear" | "Cloudy" | "Showers" | "High wind" | "Storms"
-  rain: number
-  gusts: number
-}
-const forecasts: Record<SiteId, Forecast[]> = {
-  north: [
-    { condition: "Showers", rain: 70, gusts: 18 },
-    { condition: "High wind", rain: 20, gusts: 38 },
-    { condition: "Storms", rain: 85, gusts: 42 },
-  ],
-  south: [
-    { condition: "Clear", rain: 5, gusts: 12 },
-    { condition: "Cloudy", rain: 15, gusts: 17 },
-    { condition: "Showers", rain: 65, gusts: 24 },
-  ],
-  east: [
-    { condition: "Cloudy", rain: 20, gusts: 14 },
-    { condition: "Showers", rain: 75, gusts: 22 },
-    { condition: "Clear", rain: 10, gusts: 13 },
-  ],
-  west: [
-    { condition: "High wind", rain: 10, gusts: 36 },
-    { condition: "Clear", rain: 5, gusts: 16 },
-    { condition: "Cloudy", rain: 25, gusts: 19 },
-  ],
-}
+import { weatherSiteByName, type SiteForecast } from "@/lib/weather/sites"
 const icons = {
-  Clear: Sun,
-  Cloudy: Cloud,
-  Showers: CloudRain,
-  "High wind": Wind,
-  Storms: CloudLightning,
+  storm: CloudLightning,
+  rain: CloudRain,
+  snow: CloudSnow,
+  cloud: Cloud,
+  sun: Sun,
+  fog: CloudFog,
 }
-const days = ["Today", "Tomorrow", "Day after"]
-
-export function WeatherOutlook({ siteId }: { siteId: SiteId }) {
+export function WeatherOutlook({
+  siteName,
+  refreshKey,
+}: {
+  siteName: string
+  refreshKey: string
+}) {
+  const site = weatherSiteByName(siteName)
+  const [forecast, setForecast] = useState<SiteForecast | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    if (!site) return
+    const controller = new AbortController()
+    async function load() {
+      try {
+        const response = await fetch(`/api/weather?site=${site!.key}`, {
+          signal: controller.signal,
+          cache: "no-store",
+        })
+        if (!response.ok) throw new Error("Unavailable")
+        const result: SiteForecast = await response.json()
+        if (!controller.signal.aborted) {
+          setForecast(result)
+          setFailed(false)
+        }
+      } catch {
+        if (!controller.signal.aborted) setFailed(true)
+      }
+    }
+    void load()
+    const timer = setInterval(load, 15 * 60000)
+    return () => {
+      controller.abort()
+      clearInterval(timer)
+    }
+  }, [site, retry, refreshKey])
+  const current = forecast?.site === site?.key ? forecast : null
   return (
     <section
       className="atlas-weather"
-      aria-label={`${siteName(siteId)} three-day demo weather forecast`}
+      aria-label={`${siteName} weather forecast`}
     >
       <div className="atlas-weather-heading">
-        <h2>3-day outlook</h2>
-        <span>Demo forecast · not live</span>
+        <h2>
+          <span className="atlas-weather-compact-label">3-day</span>
+          <span className="atlas-weather-wide-label">7-day</span> outlook ·{" "}
+          {siteName}
+        </h2>
+        {current && !failed && (
+          <a
+            href={current.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            title={`National Weather Service · Updated ${new Date(current.updatedAt).toLocaleString("en-US", { timeZone: "America/Chicago" })} CT`}
+          >
+            National Weather Service ↗
+          </a>
+        )}
       </div>
-      <ol className="atlas-weather-days">
-        {forecasts[siteId].map((forecast, index) => {
-          const Icon = icons[forecast.condition]
-          const caution =
-            forecast.condition === "High wind" ||
-            forecast.condition === "Storms"
-          return (
-            <li
-              key={days[index]}
-              className={caution ? "atlas-weather-caution" : ""}
-            >
-              <div className="atlas-weather-condition">
-                <Icon size={18} aria-hidden="true" />
-                <div>
-                  <h3>{days[index]}</h3>
-                  <p>{forecast.condition}</p>
+      {!site ? (
+        <p className="atlas-weather-status">Weather location not configured.</p>
+      ) : failed ? (
+        <div className="atlas-weather-status" role="status">
+          <span>Weather unavailable</span>
+          <button
+            onClick={() => {
+              setFailed(false)
+              setRetry((value) => value + 1)
+            }}
+            className="atlas-text-button"
+          >
+            <RefreshCw size={12} />
+            Retry
+          </button>
+        </div>
+      ) : !current ? (
+        <p className="atlas-weather-status" role="status">
+          Loading site forecast…
+        </p>
+      ) : (
+        <ol className="atlas-weather-days">
+          {current.days.map((day, index) => {
+            const Icon = icons[day.icon]
+            const label =
+              index === 0
+                ? "Today"
+                : new Intl.DateTimeFormat("en-US", {
+                    weekday: "short",
+                    timeZone: "America/Chicago",
+                  }).format(new Date(`${day.date}T12:00:00Z`))
+            return (
+              <li
+                key={day.date}
+                className={day.storm ? "atlas-weather-caution" : ""}
+                title={day.detail}
+              >
+                <div className="atlas-weather-condition">
+                  <Icon size={18} aria-hidden="true" />
+                  <div>
+                    <h3>
+                      <time dateTime={day.date}>{label}</time> ·{" "}
+                      {day.high === null ? "—" : Math.round(day.high)}° /{" "}
+                      {day.low === null ? "—" : Math.round(day.low)}°F
+                    </h3>
+                    <p>{day.condition}</p>
+                  </div>
                 </div>
-              </div>
-              <p className="atlas-weather-details">
-                <span aria-label={`${forecast.rain}% chance of rain`}>
-                  <Droplets size={10} aria-hidden="true" />
-                  {forecast.rain}%
-                </span>
-                <span
-                  aria-label={`Wind gusts ${forecast.gusts} miles per hour`}
-                >
-                  Gusts {forecast.gusts} mph
-                </span>
-              </p>
-            </li>
-          )
-        })}
-      </ol>
+                <p className="atlas-weather-details">
+                  <span
+                    aria-label={
+                      day.rain === null
+                        ? "Precipitation probability unavailable"
+                        : `${day.rain}% chance of precipitation`
+                    }
+                  >
+                    <Droplets size={10} aria-hidden="true" />
+                    {day.rain === null ? "—" : `${Math.round(day.rain)}%`}
+                  </span>
+                  <span
+                    aria-label={
+                      day.wind === null
+                        ? "Wind unavailable"
+                        : `Maximum forecast wind ${day.wind} miles per hour`
+                    }
+                  >
+                    <Wind size={10} aria-hidden="true" />
+                    {day.wind === null ? "—" : `${Math.round(day.wind)} mph`}
+                  </span>
+                </p>
+              </li>
+            )
+          })}
+        </ol>
+      )}
     </section>
   )
 }

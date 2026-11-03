@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react"
 import {
   Activity,
+  Check,
+  ChevronDown,
+  MapPin,
   Cpu,
   LayoutDashboard,
   Map,
@@ -10,10 +13,18 @@ import {
   UserRound,
   Zap,
 } from "lucide-react"
+import { Select } from "@base-ui/react/select"
 import { useRouter } from "next/navigation"
 import type { DashboardData } from "@/lib/dashboard/contracts"
+import {
+  LiveMinerWorkspace,
+  MinerInventorySearch,
+} from "./technician/live-miner-workspace"
+import { LiveSiteMap } from "./technician/live-site-map"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
+import { WeatherOutlook } from "./technician/weather-outlook"
+import { SiteClock } from "./technician/site-clock"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
 import "./technician/technician-dashboard.css"
 
@@ -43,6 +54,7 @@ export function TechnicianDashboard({
   viewer,
 }: TechnicianDashboardProps) {
   const [view, setView] = useState<View>("dashboard")
+  const [selectedMinerId, setSelectedMinerId] = useState<number | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const { sites, selectedSite } = dashboard
@@ -85,28 +97,69 @@ export function TechnicianDashboard({
             <label htmlFor="active-site">
               Workspace / <span>Site</span>
             </label>
-            <select
-              id="active-site"
-              aria-label="Workspace site"
-              value={selectedSite?.id ?? ""}
+            <Select.Root
+              value={selectedSite ? String(selectedSite.id) : null}
+              items={sites.map((site) => ({
+                value: String(site.id),
+                label: `${site.name}${!site.is_active ? " · Inactive" : ""}`,
+              }))}
               disabled={!sites.length || pending}
-              onChange={(event) => changeSite(event.target.value)}
+              onValueChange={(value) => {
+                if (value) changeSite(value)
+              }}
             >
-              {!selectedSite && (
-                <option value="">
-                  {sites.length ? "Choose a site" : "No sites yet"}
-                </option>
-              )}
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                  {!site.is_active && " · Inactive"}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger
+                id="active-site"
+                className="atlas-site-trigger"
+                aria-label="Workspace site"
+              >
+                <MapPin size={16} aria-hidden="true" />
+                <Select.Value
+                  placeholder={sites.length ? "Choose a site" : "No sites yet"}
+                />
+                <Select.Icon className="atlas-site-chevron">
+                  <ChevronDown size={15} aria-hidden="true" />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Positioner
+                  className="atlas-site-positioner"
+                  sideOffset={7}
+                  align="start"
+                  alignItemWithTrigger={false}
+                >
+                  <Select.Popup className="atlas-site-popup">
+                    <Select.List>
+                      {sites.map((site) => (
+                        <Select.Item
+                          key={site.id}
+                          value={String(site.id)}
+                          className="atlas-site-option"
+                        >
+                          <Select.ItemText>
+                            {site.name}
+                            {!site.is_active && " · Inactive"}
+                          </Select.ItemText>
+                          <Select.ItemIndicator>
+                            <Check size={15} aria-hidden="true" />
+                          </Select.ItemIndicator>
+                        </Select.Item>
+                      ))}
+                    </Select.List>
+                  </Select.Popup>
+                </Select.Positioner>
+              </Select.Portal>
+            </Select.Root>
           </div>
+          {selectedSite && (
+            <WeatherOutlook
+              key={selectedSite.id}
+              siteName={selectedSite.name}
+              refreshKey={dashboard.loadedAt}
+            />
+          )}
           <div className="atlas-topbar-right">
-            <span className="atlas-muted" role="status">
+            <span className="sr-only" role="status">
               {pending
                 ? "Updating site…"
                 : selectedSite
@@ -120,19 +173,35 @@ export function TechnicianDashboard({
             >
               Refresh
             </button>
+            <SiteClock />
           </div>
         </header>
         <main className="atlas-main" aria-busy={pending}>
-          <div className="atlas-page-heading">
-            <div>
-              <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
-              <h1>{titles[view]}</h1>
-              <p className="atlas-muted">
-                {selectedSite?.description ??
-                  "Site inventory and recent recorded movements."}
-              </p>
+          {view !== "site-map" && (
+            <div className="atlas-page-heading">
+              <div>
+                <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
+                <h1>{titles[view]}</h1>
+                <p className="atlas-muted">
+                  {view === "miners"
+                    ? "Selected miner identity, components and recorded history."
+                    : (selectedSite?.description ??
+                      "Site inventory and recent recorded movements.")}
+                </p>
+              </div>
+              {view === "dashboard" && (
+                <MinerInventorySearch
+                  key={selectedSite?.id ?? "all"}
+                  sites={sites}
+                  initialSite={selectedSite?.id ?? null}
+                  onSelect={(id) => {
+                    setSelectedMinerId(id)
+                    setView("miners")
+                  }}
+                />
+              )}
             </div>
-          </div>
+          )}
           {view === "dashboard" && (
             <>
               <BitcoinStrip />
@@ -178,7 +247,35 @@ export function TechnicianDashboard({
               </footer>
             </>
           )}
-          {view !== "dashboard" && (
+          {view === "site-map" &&
+            (selectedSite ? (
+              <LiveSiteMap
+                key={selectedSite.id}
+                siteId={selectedSite.id}
+                buildings={dashboard.buildings}
+                refreshKey={dashboard.loadedAt}
+                onMiner={(id) => {
+                  setSelectedMinerId(id)
+                  setView("miners")
+                }}
+              />
+            ) : (
+              <section className="atlas-card" style={{ padding: 32 }}>
+                <h2>Choose a site</h2>
+                <p className="atlas-muted">
+                  Select a site to see its buildings, cans and port locations.
+                </p>
+              </section>
+            ))}
+          {view === "miners" && (
+            <LiveMinerWorkspace
+              key={`${selectedMinerId ?? "none"}-${dashboard.loadedAt}`}
+              selectedId={selectedMinerId}
+              onSearch={() => setView("dashboard")}
+              refreshKey={dashboard.loadedAt}
+            />
+          )}
+          {view !== "dashboard" && view !== "miners" && view !== "site-map" && (
             <section
               className="atlas-card"
               aria-label={`${titles[view]} availability`}
@@ -186,22 +283,16 @@ export function TechnicianDashboard({
             >
               <Activity size={24} aria-hidden="true" />
               <h2>
-                {view === "site-map"
-                  ? "No site configuration loaded"
-                  : view === "miners"
-                    ? "No miner inventory loaded"
-                    : view === "actions"
-                      ? "Actions unavailable"
-                      : "No profile loaded"}
+                {view === "actions"
+                  ? "Actions unavailable"
+                  : "No profile loaded"}
               </h2>
               <p className="atlas-muted">
-                {view === "site-map"
-                  ? "Sites, buildings, cans, and positions will appear when configuration is connected."
-                  : view === "actions"
-                    ? "Registration and movement recording will be available when inventory and account access are connected."
-                    : view === "account"
-                      ? "Your identity and assigned sites will appear after sign-in is connected."
-                      : "Connect operational data to see records here."}
+                {view === "actions"
+                  ? "Registration and movement recording will be available when inventory and account access are connected."
+                  : view === "account"
+                    ? "Your identity and assigned sites will appear after sign-in is connected."
+                    : "Connect operational data to see records here."}
               </p>
             </section>
           )}

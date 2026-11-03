@@ -1788,3 +1788,247 @@
   opacity: 0.5;
   cursor: wait;
 }
+
+.atlas-weather-heading > a {
+  font-size: 8px;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.atlas-weather-heading > a:hover {
+  color: var(--foreground);
+}
+.atlas-weather-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.atlas-weather-condition p {
+  line-height: 1.3;
+}
+.atlas-weather {
+  max-width: 560px;
+}
+@media (max-width: 1050px) {
+  .atlas-weather {
+    max-width: none;
+  }
+}
+@media (max-width: 650px) {
+  .atlas-topbar-right {
+    gap: 12px;
+  }
+}
+
+/* Match the workspace controls, including the opened site menu. */
+.atlas-site-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 164px;
+  max-width: 240px;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition:
+    border-color 150ms,
+    background-color 150ms;
+}
+.atlas-site-trigger > svg {
+  color: var(--atlas-blue);
+  flex-shrink: 0;
+}
+.atlas-site-trigger:hover:not(:disabled),
+.atlas-site-trigger[data-popup-open] {
+  border-color: var(--atlas-blue);
+  background: color-mix(in oklch, var(--primary) 5%, var(--card));
+}
+.atlas-site-trigger:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.atlas-site-chevron {
+  margin-left: auto;
+  display: flex;
+  color: var(--muted-foreground);
+  transition: transform 150ms;
+}
+.atlas-site-trigger[data-popup-open] .atlas-site-chevron {
+  transform: rotate(180deg);
+}
+.atlas-site-positioner {
+  z-index: 60;
+}
+.atlas-site-popup {
+  min-width: max(210px, var(--anchor-width));
+  max-height: var(--available-height);
+  overflow: auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 8px 30px #00000025;
+}
+.atlas-site-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 40px;
+  padding: 9px 11px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+.atlas-site-option[data-highlighted] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.atlas-site-option[data-selected] {
+  font-weight: 600;
+}
+.atlas-weather-wide-label,
+.atlas-weather-days > li:nth-child(n + 4) {
+  display: none;
+}
+@media (min-width: 1600px) {
+  .atlas-weather {
+    max-width: 1100px;
+  }
+  .atlas-weather-days {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .atlas-weather-days > li:nth-child(n + 4) {
+    display: list-item;
+  }
+  .atlas-weather-days > li + li {
+    padding-left: 10px;
+  }
+  .atlas-weather-wide-label {
+    display: inline;
+  }
+  .atlas-weather-compact-label {
+    display: none;
+  }
+}
+
+/* Market summary stays visible while the chart can be tucked away. */
+.atlas-bitcoin {
+  display: grid;
+  grid-template-columns: auto minmax(50px, 1fr) auto auto;
+}
+.atlas-btc-chart[hidden] {
+  display: none;
+}
+.atlas-btc-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.atlas-btc-toggle:hover {
+  color: var(--atlas-blue);
+}
+.atlas-bitcoin[data-expanded="false"] {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding-block: 12px;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-bitcoin-label p {
+  display: none;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 18px;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price > strong {
+  font-size: 19px;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price > span,
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price > p {
+  margin-top: 0;
+}
+@media (max-width: 1023px) and (min-width: 651px) {
+  .atlas-bitcoin {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .atlas-bitcoin .atlas-btc-chart {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .atlas-bitcoin .atlas-btc-price {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .atlas-btc-toggle {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+@media (max-width: 650px) {
+  .atlas-bitcoin {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label price" "toggle toggle" "chart chart";
+    gap: 10px;
+  }
+  .atlas-bitcoin .atlas-bitcoin-label {
+    grid-area: label;
+    align-self: center;
+  }
+  .atlas-bitcoin .atlas-btc-price {
+    grid-area: price;
+  }
+  .atlas-bitcoin .atlas-btc-chart {
+    grid-area: chart;
+  }
+  .atlas-bitcoin .atlas-btc-toggle {
+    grid-area: toggle;
+    justify-self: end;
+    min-height: 36px;
+  }
+  .atlas-bitcoin[data-expanded="false"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label toggle" "price toggle";
+    gap: 5px 12px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-bitcoin-label h2 span {
+    display: inline;
+    margin-left: 5px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-btc-price {
+    justify-content: flex-start;
+    text-align: left;
+    gap: 4px 9px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-btc-price > strong {
+    font-size: 17px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-btc-price p {
+    flex-basis: 100%;
+  }
+}

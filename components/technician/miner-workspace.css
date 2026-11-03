@@ -896,3 +896,229 @@
     grid-template-columns: 1fr;
   }
 }
+
+.atlas-live-miner-detail {
+  width: min(1100px, calc(100vw - 32px));
+}
+.atlas-live-miner-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+.atlas-live-miner-fields dt {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  margin-bottom: 4px;
+}
+.atlas-live-miner-fields dd {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.atlas-live-miner-section {
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+}
+.atlas-live-miner-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.atlas-live-miner-section > p {
+  font-size: 12px;
+  margin: 8px 0;
+}
+.atlas-live-miner-events {
+  padding: 0;
+  margin-top: 16px;
+  list-style: none;
+}
+.atlas-live-miner-events li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.atlas-live-miner-events strong {
+  display: block;
+  text-transform: capitalize;
+}
+.atlas-live-miner-events time {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin: 4px 0;
+}
+.atlas-live-miner-events p {
+  margin-top: 5px;
+}
+@media (max-width: 650px) {
+  .atlas-live-miner-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dashboard search opens an inline miner record after selection. */
+.atlas-dashboard-miner-search {
+  flex: 0 1 860px;
+  min-width: 0;
+  margin-left: auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 2px 3px #00000002;
+}
+.atlas-miner-search-caption {
+  margin: 0 0 9px;
+  color: var(--muted-foreground);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.atlas-dashboard-miner-search .atlas-directory-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 145px 155px 100px;
+  padding: 0;
+  gap: 8px;
+}
+.atlas-dashboard-miner-search .atlas-directory-search {
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 7px;
+}
+.atlas-dashboard-miner-search .atlas-directory-search input {
+  font-size: 12px;
+}
+.atlas-miner-search-select {
+  position: relative;
+  min-width: 0;
+}
+.atlas-miner-search-select > svg {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+.atlas-dashboard-miner-search .atlas-miner-search-select select {
+  appearance: none;
+  width: 100%;
+  max-width: none;
+  height: 42px;
+  border-radius: 7px;
+  padding: 0 30px 0 11px;
+  background: color-mix(in oklch, var(--muted) 45%, var(--card));
+  font-size: 11px;
+  transition: border-color 150ms;
+}
+.atlas-dashboard-miner-search .atlas-miner-search-select select:hover {
+  border-color: var(--muted-foreground);
+}
+.atlas-miner-search-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 42px;
+  border: 1px solid var(--primary);
+  border-radius: 7px;
+  padding: 0 14px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px #00000015;
+  transition: filter 150ms;
+}
+.atlas-miner-search-submit:hover {
+  filter: brightness(1.15);
+}
+.atlas-miner-search-submit:active {
+  filter: brightness(0.95);
+}
+.atlas-page-heading:has(.atlas-dashboard-miner-search) {
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.atlas-miner-search-dialog {
+  width: min(1200px, calc(100vw - 32px));
+  max-height: calc(100svh - 48px);
+  overflow: auto;
+}
+.atlas-miner-search-dialog .atlas-details-dialog-header {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+}
+.atlas-selected-miner > .atlas-section-header {
+  padding: 24px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.atlas-selected-miner h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+.atlas-selected-miner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.atlas-selected-miner-tabs {
+  display: flex;
+  gap: 24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+.atlas-selected-miner-tabs button {
+  padding: 12px 0;
+  font-size: 13px;
+  color: var(--muted-foreground);
+  border-bottom: 2px solid transparent;
+}
+.atlas-selected-miner-tabs button[aria-current="page"] {
+  border-color: var(--atlas-blue);
+  color: var(--foreground);
+}
+.atlas-selected-miner-body {
+  padding: 0 24px 24px;
+}
+.atlas-selected-miner-empty {
+  padding: 40px;
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+@media (max-width: 1100px) {
+  .atlas-dashboard-miner-search {
+    flex-basis: 100%;
+    order: 1;
+    max-width: none;
+  }
+}
+@media (max-width: 650px) {
+  .atlas-selected-miner-actions {
+    gap: 14px;
+  }
+  .atlas-selected-miner-body {
+    padding: 0 16px 16px;
+  }
+}
+
+@media (max-width: 760px) {
+  .atlas-dashboard-miner-search .atlas-directory-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .atlas-dashboard-miner-search .atlas-directory-search {
+    grid-column: 1 / -1;
+  }
+  .atlas-dashboard-miner-search .atlas-miner-search-submit {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
