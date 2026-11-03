@@ -203,7 +203,11 @@ export function InventoryActions({
   return (
     <dialog
       ref={dialog}
-      className="atlas-dialog atlas-inventory-action-dialog"
+      className={[
+        "atlas-dialog",
+        "atlas-inventory-action-dialog",
+        mode === "insert" ? "atlas-insert-dialog" : "",
+      ].join(" ")}
       aria-labelledby="inventory-action-title"
       onCancel={(event) => {
         event.preventDefault()
@@ -308,7 +312,6 @@ export function InventoryActions({
         ) : mode === "insert" ? (
           <InsertMiners
             options={options}
-            siteId={siteId}
             onSaved={onSaved}
             onClose={onClose}
             onBack={() => setMode(null)}
@@ -694,13 +697,14 @@ function LocationPicker({
         if (!c.signal.aborted) {
           setSelected(l)
           onSelect(l.available ? l.id : null)
+          onChoice?.(l.available ? l : null)
         }
       })
       .catch((e) => {
         if (!c.signal.aborted) setError(e.message)
       })
     return () => c.abort()
-  }, [initialId, onSelect])
+  }, [initialId, onSelect, onChoice])
   useEffect(() => {
     if (
       selected ||
@@ -1046,18 +1050,16 @@ function LocationLabel({ location }: { location: ActionLocation }) {
 }
 function InsertMiners({
   options,
-  siteId,
   onSaved,
   onClose,
   onBack,
   onBusyChange,
 }: {
-  onBusyChange: (busy: boolean) => void
   options: ActionOptions
-  siteId: number | null
   onSaved: () => void
   onClose: () => void
   onBack: () => void
+  onBusyChange: (busy: boolean) => void
 }) {
   const [minerId, setMinerId] = useState<number | null>(null)
   const [miner, setMiner] = useState<ActionMiner | null>(null)
@@ -1066,52 +1068,101 @@ function InsertMiners({
   const [entries, setEntries] = useState<
     { miner: ActionMiner; location: ActionLocation }[]
   >([])
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [revision, setRevision] = useState(0)
   const [notes, setNotes] = useState("")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState("")
+  const confirmation = useRef<HTMLDialogElement>(null)
+  const insertButton = useRef<HTMLButtonElement>(null)
+  const entryPanel = useRef<HTMLElement>(null)
   const inFlight = useRef(false)
   const receipt = useRef<{ fingerprint: string; key: string } | null>(null)
   useEffect(() => {
     if (!minerId) return
-    const c = new AbortController()
-    get<ActionMiner>({ resource: "miner", id: String(minerId) }, c.signal)
-      .then((m) => {
-        if (!c.signal.aborted) setMiner(m)
+    const controller = new AbortController()
+    get<ActionMiner>(
+      { resource: "miner", id: String(minerId) },
+      controller.signal
+    )
+      .then((value) => {
+        if (!controller.signal.aborted) setMiner(value)
       })
       .catch((e) => {
-        if (!c.signal.aborted) setError(e.message)
+        if (!controller.signal.aborted) setError(e.message)
       })
-    return () => c.abort()
+    return () => controller.abort()
   }, [minerId])
+  useEffect(() => {
+    if (!revision) return
+    const frame = requestAnimationFrame(() =>
+      entryPanel.current?.querySelector<HTMLInputElement>("input")?.focus()
+    )
+    return () => cancelAnimationFrame(frame)
+  }, [revision])
+  function resetDraft() {
+    setMinerId(null)
+    setMiner(null)
+    setLocationId(null)
+    setLocation(null)
+    setEditingId(null)
+    setRevision((value) => value + 1)
+  }
   function add() {
     if (!miner || !location || !locationId) return
     if (
       entries.some(
-        (e) => e.miner.id === miner.id || e.location.id === location.id
+        (entry) =>
+          entry.miner.id !== editingId &&
+          (entry.miner.id === miner.id || entry.location.id === location.id)
       )
     ) {
       setError("Each miner and port can only appear once in a batch.")
       return
     }
-    setEntries([...entries, { miner, location }])
-    setMinerId(null)
-    setMiner(null)
-    setLocation(null)
-    setLocationId(null)
-    setRevision((v) => v + 1)
+    if (editingId !== null)
+      setEntries(
+        entries.map((entry) =>
+          entry.miner.id === editingId ? { miner, location } : entry
+        )
+      )
+    else if (entries.length < 25) setEntries([...entries, { miner, location }])
+    resetDraft()
     setError("")
   }
-  async function save(e: FormEvent) {
-    e.preventDefault()
-    if (inFlight.current || !entries.length) return
+  function edit(entry: { miner: ActionMiner; location: ActionLocation }) {
+    setEditingId(entry.miner.id)
+    setMinerId(entry.miner.id)
+    setMiner(entry.miner)
+    setLocationId(null)
+    setLocation(null)
+    setRevision((value) => value + 1)
+    setError("")
+  }
+  function remove(id: number) {
+    setEntries(entries.filter((entry) => entry.miner.id !== id))
+    if (editingId === id) resetDraft()
+  }
+  function requestConfirmation(event: FormEvent) {
+    event.preventDefault()
+    if (inFlight.current || !entries.length || minerId !== null) return
+    setError("")
+    confirmation.current?.showModal()
+  }
+  function cancelConfirmation() {
+    if (inFlight.current) return
+    confirmation.current?.close()
+    insertButton.current?.focus()
+  }
+  async function save() {
+    if (inFlight.current || !entries.length || !confirmation.current?.open)
+      return
     const payload = {
       kind: "insert",
-      entries: entries.map((e) => ({
-        minerId: e.miner.id,
-        version: e.miner.version,
-        locationId: e.location.id,
+      entries: entries.map((entry) => ({
+        minerId: entry.miner.id,
+        version: entry.miner.version,
+        locationId: entry.location.id,
       })),
       notes: notes.trim(),
     }
@@ -1121,7 +1172,6 @@ function InsertMiners({
     inFlight.current = true
     setBusy(true)
     onBusyChange(true)
-    setError("")
     try {
       const response = await fetch("/api/inventory-actions", {
         method: "POST",
@@ -1137,162 +1187,266 @@ function InsertMiners({
           body.message ??
             "Batch could not be confirmed. Retry the unchanged placements."
         )
-      setResult(body.message)
+      confirmation.current?.close()
       onSaved()
+      onClose()
     } catch (e) {
+      confirmation.current?.close()
       setError(e instanceof Error ? e.message : "Batch could not be confirmed.")
+      insertButton.current?.focus()
     } finally {
       inFlight.current = false
       setBusy(false)
       onBusyChange(false)
     }
   }
-  if (result)
-    return (
-      <div role="status">
-        <p>{result}</p>
-        <button className="atlas-action-primary" onClick={onClose}>
-          Done
-        </button>
-      </div>
+  const editing = entries.find((entry) => entry.miner.id === editingId)
+  const duplicate =
+    miner &&
+    entries.some(
+      (entry) => entry.miner.id === miner.id && entry.miner.id !== editingId
     )
   return (
-    <div className="atlas-insert-miners">
-      <button className="atlas-text-button" disabled={busy} onClick={onBack}>
-        ← All actions
-      </button>
-      <p>
-        Match existing Atlas miners with available deployment ports. Search by
-        miner ID, skeleton serial, component serial or MAC. Up to 25 placements
-        are saved together.
-      </p>
-      {error && (
-        <p role="alert" className="atlas-action-error">
-          {error}
-        </p>
-      )}
-      <p className="atlas-muted">
-        <RequiredMark /> Required fields
-      </p>
-      <fieldset
-        disabled={busy || entries.length >= 25}
-        className="atlas-insert-draft"
+    <div className="atlas-insert-workspace">
+      <section
+        className="atlas-insert-entry-panel"
+        ref={entryPanel}
+        aria-label="Add miner to batch"
       >
-        <h3>
-          Miner <RequiredMark />
-        </h3>
-        {miner ? (
-          <div className="atlas-action-miner">
-            <strong>
-              Miner #{miner.identity} · {miner.serial}
-            </strong>
-            <span>{miner.location}</span>
-            <button
-              type="button"
-              className="atlas-text-button"
-              onClick={() => {
-                setMiner(null)
-                setMinerId(null)
-              }}
-            >
-              Choose another miner
-            </button>
-          </div>
-        ) : minerId ? (
-          <p role="status">Loading miner…</p>
-        ) : (
-          <MinerPicker key={revision} onSelect={setMinerId} searchOnly />
-        )}
-        {miner && entries.some((e) => e.miner.id === miner.id) && (
-          <p role="status" className="atlas-action-error">
-            This miner is already in the placements list. Choose another miner.
+        <button className="atlas-text-button" disabled={busy} onClick={onBack}>
+          ← All actions
+        </button>
+        <p>
+          {editingId !== null
+            ? "Update this miner’s destination, then return it to the review list."
+            : "Choose a miner and an available port, then add it to the review list. Nothing is saved until you confirm the batch."}
+        </p>
+        <p className="atlas-muted">
+          <RequiredMark /> Required fields
+        </p>
+        {error && (
+          <p role="alert" className="atlas-action-error">
+            {error}
           </p>
         )}
-        <LocationPicker
-          key={`port-${revision}`}
-          options={options}
-          siteId={siteId}
-          onSelect={setLocationId}
-          onChoice={setLocation}
-          portsOnly
-          excluded={entries.map((e) => e.location.id)}
-        />
-        <button
-          type="button"
-          className="atlas-action-primary"
-          disabled={
-            !miner ||
-            !locationId ||
-            !location ||
-            entries.some((e) => e.miner.id === miner.id)
-          }
-          onClick={add}
+        <fieldset
+          className="atlas-insert-draft"
+          disabled={busy || (entries.length >= 25 && editingId === null)}
         >
-          Add placement
-        </button>
-      </fieldset>
-      <section aria-label="Placements to insert">
-        <h3>Placements · {entries.length} / 25</h3>
-        {!entries.length ? (
-          <p className="atlas-muted">No placements added yet.</p>
-        ) : (
-          <ol className="atlas-insert-queue">
-            {entries.map((entry, index) => (
-              <li key={entry.miner.id}>
-                <div>
-                  <strong>
-                    Miner #{entry.miner.identity} · {entry.miner.serial}
-                  </strong>
-                  <LocationLabel location={entry.location} />
-                </div>
+          <h3>
+            {editingId !== null ? "Edit miner location" : "Miner"}{" "}
+            <RequiredMark />
+          </h3>
+          {miner ? (
+            <div className="atlas-action-miner">
+              <strong>
+                Miner #{miner.identity} · {miner.serial}
+              </strong>
+              <span>Current location · {miner.location}</span>
+              {editing && (
+                <span>
+                  Queued destination ·{" "}
+                  <LocationLabel location={editing.location} />
+                </span>
+              )}
+              {editingId === null && (
                 <button
                   type="button"
                   className="atlas-text-button"
-                  disabled={busy}
-                  onClick={() =>
-                    setEntries(entries.filter((_, i) => i !== index))
-                  }
+                  onClick={() => {
+                    setMinerId(null)
+                    setMiner(null)
+                  }}
                 >
-                  Remove
-                  <span className="sr-only"> miner {entry.miner.identity}</span>
+                  Choose another miner
                 </button>
-              </li>
-            ))}
-          </ol>
+              )}
+            </div>
+          ) : minerId ? (
+            <p role="status">Loading miner…</p>
+          ) : (
+            <MinerPicker key={revision} onSelect={setMinerId} searchOnly />
+          )}
+          {duplicate && (
+            <p role="status" className="atlas-action-error">
+              This miner is already in the review list. Edit its card or choose
+              another miner.
+            </p>
+          )}
+          <LocationPicker
+            key={`port-${revision}`}
+            options={options}
+            initialId={editing?.location.id}
+            siteId={null}
+            onSelect={setLocationId}
+            onChoice={setLocation}
+            portsOnly
+            excluded={entries
+              .filter((entry) => entry.miner.id !== editingId)
+              .map((entry) => entry.location.id)}
+          />
+          <button
+            type="button"
+            className="atlas-action-primary"
+            disabled={!miner || !locationId || !location || !!duplicate}
+            onClick={add}
+          >
+            {editingId !== null ? "Update location in list" : "Add miner"}
+          </button>
+        </fieldset>
+        {(editingId !== null || minerId !== null) && (
+          <button
+            className="atlas-text-button"
+            disabled={busy}
+            onClick={resetDraft}
+          >
+            {editingId !== null ? "Cancel editing" : "Clear form"}
+          </button>
         )}
       </section>
-      <form onSubmit={save} className="atlas-action-form">
-        <label>
-          <span>
-            Reason / notes <RequiredMark />
-          </span>
-          <textarea
-            required
-            minLength={3}
-            maxLength={2000}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            disabled={busy}
-            rows={2}
-          />
-        </label>
-        <p className="atlas-muted">
-          Availability is rechecked when saving. If any placement fails, none of
-          the placements are saved. History and reservations are recorded for
-          each miner.
+      <aside
+        className="atlas-insert-review-panel"
+        aria-label="Miners ready to insert"
+      >
+        <header>
+          <p className="atlas-eyebrow">REVIEW</p>
+          <h3>
+            Miners to insert <span>{entries.length} / 25</span>
+          </h3>
+        </header>
+        <div className="atlas-insert-review-list">
+          {!entries.length ? (
+            <p className="atlas-muted">
+              Add miners on the left. Each miner and its destination will appear
+              here for review.
+            </p>
+          ) : (
+            <ol className="atlas-insert-queue">
+              {entries.map((entry) => (
+                <li
+                  key={entry.miner.id}
+                  data-editing={editingId === entry.miner.id || undefined}
+                >
+                  <div>
+                    <strong>Miner #{entry.miner.identity}</strong>
+                    <span>{entry.miner.serial}</span>
+                    <LocationLabel location={entry.location} />
+                  </div>
+                  <div className="atlas-insert-card-actions">
+                    <button
+                      type="button"
+                      className="atlas-text-button"
+                      disabled={busy}
+                      onClick={() => edit(entry)}
+                    >
+                      Edit location
+                      <span className="sr-only">
+                        {" "}
+                        for miner {entry.miner.identity}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className="atlas-text-button atlas-insert-remove"
+                      disabled={busy}
+                      onClick={() => remove(entry.miner.id)}
+                    >
+                      Remove
+                      <span className="sr-only">
+                        {" "}
+                        miner {entry.miner.identity}
+                      </span>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+        <form
+          onSubmit={requestConfirmation}
+          className="atlas-action-form atlas-insert-review-footer"
+        >
+          <label>
+            <span>
+              Reason / notes <RequiredMark />
+            </span>
+            <textarea
+              required
+              minLength={3}
+              maxLength={2000}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              disabled={busy}
+              rows={2}
+            />
+          </label>
+          {minerId !== null && (
+            <p className="atlas-muted">
+              {editingId !== null
+                ? "Finish or cancel the location edit before inserting."
+                : "Add or clear the miner in the entry form before inserting."}
+            </p>
+          )}
+          <p className="atlas-muted">
+            You’ll confirm {entries.length}{" "}
+            {entries.length === 1 ? "placement" : "placements"} before anything
+            is saved. Availability is checked again when saving.
+          </p>
+          <div className="atlas-action-footer">
+            <button
+              ref={insertButton}
+              className="atlas-action-primary"
+              disabled={busy || !entries.length || minerId !== null}
+            >
+              Insert {entries.length || ""}{" "}
+              {entries.length === 1 ? "miner" : "miners"}
+            </button>
+            <button type="button" disabled={busy} onClick={onClose}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </aside>
+      <dialog
+        ref={confirmation}
+        className="atlas-dialog atlas-insert-confirmation"
+        aria-labelledby="insert-confirmation-title"
+        aria-describedby="insert-confirmation-description"
+        onCancel={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          cancelConfirmation()
+        }}
+      >
+        <h2 id="insert-confirmation-title">
+          Insert {entries.length} {entries.length === 1 ? "miner" : "miners"}?
+        </h2>
+        <p id="insert-confirmation-description">
+          Are you sure you want to insert these miners into their reviewed
+          locations? This will update their location, port reservation and
+          movement history.
         </p>
         <div className="atlas-action-footer">
           <button
-            className="atlas-action-primary"
-            disabled={busy || !entries.length}
+            type="button"
+            autoFocus
+            disabled={busy}
+            onClick={cancelConfirmation}
           >
-            {busy ? "Saving…" : `Insert ${entries.length || ""} miners`}
+            No, keep reviewing
           </button>
-          <button type="button" disabled={busy} onClick={onClose}>
-            Cancel
+          <button
+            type="button"
+            className="atlas-action-primary"
+            disabled={busy}
+            onClick={save}
+          >
+            {busy ? "Inserting…" : "Yes, insert miners"}
           </button>
         </div>
-      </form>
+        {busy && <p role="status">Saving all placements together…</p>}
+      </dialog>
     </div>
   )
 }

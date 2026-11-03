@@ -466,3 +466,146 @@
   z-index: 2;
   background: var(--card);
 }
+
+.atlas-dialog.atlas-inventory-action-dialog.atlas-insert-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.atlas-insert-dialog > .atlas-action-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% - 356px);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+}
+.atlas-insert-dialog > .atlas-action-body {
+  padding: 0;
+}
+.atlas-insert-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  min-width: 0;
+}
+.atlas-insert-entry-panel,
+.atlas-insert-review-panel {
+  height: min(840px, calc(100svh - 32px));
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.atlas-insert-entry-panel {
+  padding: 110px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: auto;
+}
+.atlas-insert-entry-panel > .atlas-text-button {
+  align-self: flex-start;
+}
+.atlas-insert-review-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.atlas-insert-review-panel > header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.atlas-insert-review-panel h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+.atlas-insert-review-panel h3 span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.atlas-insert-review-list {
+  padding: 16px;
+  min-height: 100px;
+  overflow: auto;
+  flex: 1;
+}
+.atlas-insert-review-list .atlas-insert-queue {
+  margin: 0;
+}
+.atlas-insert-review-list .atlas-insert-queue li {
+  display: grid;
+  gap: 12px;
+  background: var(--background);
+}
+.atlas-insert-review-list li[data-editing="true"] {
+  border-color: var(--primary);
+}
+.atlas-insert-card-actions {
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+.atlas-insert-remove {
+  color: var(--atlas-red, #e65e65);
+}
+.atlas-insert-review-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+  flex-shrink: 0;
+}
+.atlas-insert-review-footer .atlas-action-footer {
+  flex-wrap: wrap;
+}
+.atlas-dialog.atlas-insert-confirmation {
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+}
+.atlas-insert-confirmation > p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 12px 0 20px;
+}
+.atlas-insert-confirmation .atlas-action-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .atlas-dialog.atlas-inventory-action-dialog.atlas-insert-dialog {
+    overflow: auto;
+  }
+  .atlas-insert-dialog > .atlas-action-header {
+    position: sticky;
+    width: 100%;
+  }
+  .atlas-insert-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .atlas-insert-entry-panel {
+    height: auto;
+    padding: 20px 16px;
+    overflow: visible;
+    border-radius: 0 0 14px 14px;
+  }
+  .atlas-insert-review-panel {
+    height: auto;
+    min-height: 260px;
+  }
+  .atlas-insert-review-list {
+    max-height: 320px;
+  }
+}
