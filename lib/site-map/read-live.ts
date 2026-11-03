@@ -1,4 +1,5 @@
 import "server-only"
+import { summarizeCanAssignments } from "./live-contracts"
 import type { PrismaClient } from "@/lib/generated/prisma/client"
 import type {
   BuildingMapSummary,
@@ -191,7 +192,7 @@ export async function readBuildingMapSummary(
           { reserved_port: { location: { building_id: buildingId } } },
         ],
       }
-      const [total, deployed, repair, staging, pallet, reserved] =
+      const [total, deployed, repair, staging, pallet, reserved, cans] =
         await Promise.all([
           tx.miner.count({ where: linked }),
           tx.miner.count({
@@ -217,6 +218,27 @@ export async function readBuildingMapSummary(
               reserved_miner_id: { not: null },
             },
           }),
+          tx.can.findMany({
+            where: { building_id: buildingId },
+            select: {
+              id: true,
+              locations: {
+                where: {
+                  OR: [
+                    { current_miners: { some: {} } },
+                    { ports: { some: { reserved_miner_id: { not: null } } } },
+                  ],
+                },
+                select: {
+                  current_miners: { select: { id: true } },
+                  ports: {
+                    where: { reserved_miner_id: { not: null } },
+                    select: { reserved_miner_id: true },
+                  },
+                },
+              },
+            },
+          }),
         ])
       return {
         id: building.id,
@@ -228,6 +250,7 @@ export async function readBuildingMapSummary(
         staging,
         pallet,
         reserved,
+        cans: cans.map(summarizeCanAssignments),
         loadedAt: new Date().toISOString(),
       }
     },

@@ -35,7 +35,7 @@ access check links the accounts by verified email. Passwords never belong in
 Creating an Auth account alone does not grant dashboard access. Atlas also
 requires an active staff record. Disabling that record revokes dashboard access
 on the next server read. Currently all active staff roles can read all sites;
-the dashboard has no operational write endpoints.
+inventory actions additionally require ADMIN, MANAGER or TECHNICIAN, with a server-side role check on every write. VIEWER is read-only.
 
 Run `node --test tests/login-only.test.mjs tests/dashboard-read.test.mjs` to check
 that signup cannot reach the authentication provider and unapproved users cannot

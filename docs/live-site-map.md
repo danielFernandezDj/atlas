@@ -33,9 +33,10 @@ rate, red 0 H, and light purple S for an explicit sleep state. Samples older tha
 two minutes, invalid values, or absent readings remain unknown. The threshold
 requires a real expected rate; no universal 78 TH/s threshold is assumed.
 
-Disconnect and Replace miner appear disabled with an explanation. Implementing
-those workflows requires authorization, concurrency protection and history
-recording; the current map never changes assignments.
+Port menus now launch the authenticated inventory action dialog: Add a miner here
+for empty configured locations, and Update location / Update miner for occupants.
+The map read endpoints do not mutate assignments; writes use the transactional
+inventory-actions endpoint. See `inventory-actions.md`.
 
 ## Compact controls and building inventory
 
@@ -80,7 +81,6 @@ keyboard/hover instructions, and scope explanation for building/can counts.
 Actual map data errors and coordinate warnings stay visible. Each port box shows
 its row/column address at the top right and its state/rate at the lower left.
 
-
 ## Last working port
 
 Activating a cell (click, Enter, or Space) records its site, building, can,
@@ -97,3 +97,22 @@ Matches require the can, coordinates and location ID, so a new location at the
 same address is not silently treated as the old port. A changed miner assignment
 at the same location retains the port marker. Removed cans cannot be revisited
 through the marker. No port is assumed selected before the first activation.
+
+## Can counts and health colors
+
+Each can button splits its number on the left from its assigned-miner count on
+the right. The building-summary read supplies all can counts in the same
+repeatable-read snapshot. A count is the unique union of miners physically in
+any location of that can and miners reserved to its ports, including repair
+reservations. A miner that is both present and reserved counts once per can.
+Only miner IDs and reservation IDs are fetched for this aggregation.
+
+The Map guide documents can health: 95–100% hashing is green, 90–under 95% is
+orange, below 90% is red, and an empty can is faint gray. Exactly 95% is green;
+exactly 90% is orange. These are percentages of assigned miners hashing, not
+percentages of expected hash rate or can capacity. Classification requires
+complete fresh telemetry for all assigned miners. No live telemetry is connected,
+so populated cans currently have a neutral, dashed status-unavailable style;
+they are never assumed green or red from inventory data. Missing/failed counts
+show a dash rather than a misleading zero. Building changes discard the previous
+building's can summary, and refresh reloads both counts and the current map.

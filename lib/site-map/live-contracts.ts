@@ -117,6 +117,7 @@ export type BuildingMapSummary = {
   staging: number
   pallet: number
   reserved: number
+  cans: CanInventorySummary[]
   loadedAt: string
 }
 
@@ -142,4 +143,61 @@ export function matchesLastPort(
     last.column === cell.column &&
     last.locationId === cell.locationId
   )
+}
+
+export type CanStage = "empty" | "unknown" | "healthy" | "warning" | "critical"
+export type CanInventorySummary = {
+  id: number
+  miners: number
+  stage: CanStage
+  hashingPercent: number | null
+}
+export function canHealth(
+  total: number,
+  hashing: number | null,
+  reported = 0
+): { stage: CanStage; hashingPercent: number | null } {
+  if (!Number.isInteger(total) || total < 0)
+    return { stage: "unknown", hashingPercent: null }
+  if (total === 0) return { stage: "empty", hashingPercent: null }
+  if (
+    hashing === null ||
+    !Number.isInteger(hashing) ||
+    hashing < 0 ||
+    hashing > total ||
+    reported !== total
+  )
+    return { stage: "unknown", hashingPercent: null }
+  const hashingPercent = (hashing / total) * 100
+  return {
+    stage:
+      hashingPercent >= 95
+        ? "healthy"
+        : hashingPercent >= 90
+          ? "warning"
+          : "critical",
+    hashingPercent,
+  }
+}
+export function summarizeCanAssignments(can: {
+  id: number
+  locations: {
+    current_miners: { id: number }[]
+    ports: { reserved_miner_id: number | null }[]
+  }[]
+}): CanInventorySummary {
+  const ids = new Set<number>()
+  for (const location of can.locations) {
+    for (const miner of location.current_miners) ids.add(miner.id)
+    for (const port of location.ports)
+      if (port.reserved_miner_id !== null) ids.add(port.reserved_miner_id)
+  }
+  return { id: can.id, miners: ids.size, ...canHealth(ids.size, null) }
+}
+export const canStageLabels: Record<CanStage, string> = {
+  empty: "No miners assigned",
+  unknown: "Hashing status unavailable",
+  healthy: "95–100% hashing",
+  warning: "90–under 95% hashing",
+  critical: "Below 90% hashing",
 }

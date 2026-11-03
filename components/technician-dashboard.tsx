@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react"
 import {
-  Activity,
   Check,
   ChevronDown,
   MapPin,
@@ -10,7 +9,6 @@ import {
   LayoutDashboard,
   Map,
   Server,
-  UserRound,
   Zap,
 } from "lucide-react"
 import { Select } from "@base-ui/react/select"
@@ -26,23 +24,22 @@ import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
 import { WeatherOutlook } from "./technician/weather-outlook"
 import { SiteClock } from "./technician/site-clock"
+import { InventoryActions } from "./technician/inventory-actions"
+import { AccountMenu } from "./technician/account-menu"
+import type { ActionContext } from "@/lib/inventory-actions/contracts"
 import { BitcoinStrip } from "./technician/bitcoin-strip"
 import "./technician/technician-dashboard.css"
 
-type View = "dashboard" | "site-map" | "miners" | "actions" | "account"
+type View = "dashboard" | "site-map" | "miners"
 const views = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
   { id: "site-map", label: "Site map", Icon: Map },
   { id: "miners", label: "Miners", Icon: Cpu },
-  { id: "actions", label: "Actions", Icon: Zap },
-  { id: "account", label: "Account", Icon: UserRound },
 ] as const
 const titles: Record<View, string> = {
   dashboard: "Site dashboard",
   "site-map": "Site map",
   miners: "Miner workspace",
-  actions: "Actions",
-  account: "Account",
 }
 
 type TechnicianDashboardProps = {
@@ -57,6 +54,7 @@ export function TechnicianDashboard({
   const [view, setView] = useState<View>("dashboard")
   const [selectedMinerId, setSelectedMinerId] = useState<number | null>(null)
   const [lastPorts, setLastPorts] = useState<Record<number, LastMapPort>>({})
+  const [actionContext, setActionContext] = useState<ActionContext | null>(null)
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const { sites, selectedSite } = dashboard
@@ -88,8 +86,23 @@ export function TechnicianDashboard({
               <span>{label}</span>
             </button>
           ))}
+          <button
+            title="Actions"
+            aria-label="Actions"
+            onClick={() =>
+              setActionContext(
+                view === "miners" && selectedMinerId
+                  ? { minerId: selectedMinerId }
+                  : {}
+              )
+            }
+          >
+            <Zap />
+            <span>Actions</span>
+          </button>
         </nav>
         <div className="atlas-rail-bottom">
+          <AccountMenu viewer={viewer} />
           <span className="atlas-rail-version">ATLAS / MVP</span>
         </div>
       </aside>
@@ -191,6 +204,18 @@ export function TechnicianDashboard({
                       "Site inventory and recent recorded movements.")}
                 </p>
               </div>
+              {view === "miners" && (
+                <button
+                  className="atlas-action-primary"
+                  disabled={!selectedMinerId}
+                  onClick={() =>
+                    setActionContext({ minerId: selectedMinerId! })
+                  }
+                >
+                  <Zap size={15} />
+                  Miner actions
+                </button>
+              )}
               {view === "dashboard" && (
                 <MinerInventorySearch
                   key={selectedSite?.id ?? "all"}
@@ -263,6 +288,7 @@ export function TechnicianDashboard({
                   }))
                 }
                 refreshKey={dashboard.loadedAt}
+                onAction={setActionContext}
                 onMiner={(id) => {
                   setSelectedMinerId(id)
                   setView("miners")
@@ -284,29 +310,22 @@ export function TechnicianDashboard({
               refreshKey={dashboard.loadedAt}
             />
           )}
-          {view !== "dashboard" && view !== "miners" && view !== "site-map" && (
-            <section
-              className="atlas-card"
-              aria-label={`${titles[view]} availability`}
-              style={{ padding: 32 }}
-            >
-              <Activity size={24} aria-hidden="true" />
-              <h2>
-                {view === "actions"
-                  ? "Actions unavailable"
-                  : "No profile loaded"}
-              </h2>
-              <p className="atlas-muted">
-                {view === "actions"
-                  ? "Registration and movement recording will be available when inventory and account access are connected."
-                  : view === "account"
-                    ? "Your identity and assigned sites will appear after sign-in is connected."
-                    : "Connect operational data to see records here."}
-              </p>
-            </section>
-          )}
         </main>
       </div>
+      {actionContext && (
+        <InventoryActions
+          key={JSON.stringify(actionContext)}
+          context={actionContext}
+          siteId={selectedSite?.id ?? null}
+          onClose={() => setActionContext(null)}
+          onSaved={() => startTransition(() => router.refresh())}
+          onOpenMiner={(id) => {
+            setActionContext(null)
+            setSelectedMinerId(id)
+            setView("miners")
+          }}
+        />
+      )}
     </div>
   )
 }

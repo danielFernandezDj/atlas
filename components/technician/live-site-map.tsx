@@ -1,6 +1,7 @@
 "use client"
 import {
   useEffect,
+  useCallback,
   useMemo,
   useRef,
   useState,
@@ -11,9 +12,11 @@ import {
 import { ArrowUpRight, BookOpen, LocateFixed, RefreshCw, X } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Popover } from "@base-ui/react/popover"
+import type { ActionContext } from "@/lib/inventory-actions/contracts"
 import type { DashboardData } from "@/lib/dashboard/contracts"
 import {
   cellDescription,
+  canStageLabels,
   matchesLastPort,
   type LastMapPort,
   portDisplay,
@@ -28,6 +31,7 @@ export function LiveSiteMap({
   buildings,
   lastPort,
   onPortSelect,
+  onAction,
   refreshKey,
   onMiner,
 }: {
@@ -35,6 +39,7 @@ export function LiveSiteMap({
   buildings: DashboardData["buildings"]
   lastPort: LastMapPort | null
   onPortSelect: (port: LastMapPort) => void
+  onAction: (context: ActionContext) => void
   refreshKey: string
   onMiner: (id: number) => void
 }) {
@@ -70,6 +75,19 @@ export function LiveSiteMap({
   }
   const [refresh, setRefresh] = useState(0)
   const mapKey = `${siteId}-${canId}-${refreshKey}-${refresh}`
+  const summaryKey = `${siteId}-${buildingId}-${refreshKey}-${refresh}`
+  const [buildingSummary, setBuildingSummary] = useState<{
+    key: string
+    data: BuildingMapSummary | null
+  } | null>(null)
+  const receiveSummary = useCallback(
+    (data: BuildingMapSummary | null) =>
+      setBuildingSummary({ key: summaryKey, data }),
+    [summaryKey]
+  )
+  const canSummaries =
+    buildingSummary?.key === summaryKey ? buildingSummary.data?.cans : undefined
+
   const [mapResult, setMapResult] = useState<{
     key: string
     map: LiveCanMap | null
@@ -140,29 +158,50 @@ export function LiveSiteMap({
           <fieldset>
             <legend>Can</legend>
             <div className="atlas-map-options atlas-map-can-options">
-              {cans.map((c) => (
-                <button
-                  key={c.id}
-                  aria-label={`Can ${c.number}${!c.active ? " · Inactive" : ""}`}
-                  style={
-                    /^[1-8]$/.test(c.number)
-                      ? {
-                          gridColumn: Math.ceil(Number(c.number) / 2),
-                          gridRow: Number(c.number) % 2 ? 1 : 2,
-                        }
-                      : undefined
-                  }
-                  aria-pressed={c.id === canId}
-                  onClick={() => setCanId(c.id)}
-                  title={`${c.slots} configured locations${!c.active ? " · Inactive" : ""}`}
-                >
-                  <span className="atlas-map-can-prefix" aria-hidden="true">
-                    Can{" "}
-                  </span>
-                  {c.number}
-                  {!c.active && <span>Inactive</span>}
-                </button>
-              ))}
+              {cans.map((c) => {
+                const info = canSummaries?.find(
+                  (summary) => summary.id === c.id
+                )
+                const description = info
+                  ? `${info.miners} miners assigned · ${canStageLabels[info.stage]}`
+                  : "Loading can inventory"
+                return (
+                  <button
+                    key={c.id}
+                    aria-label={`Can ${c.number}${!c.active ? " · Inactive" : ""}`}
+                    style={
+                      /^[1-8]$/.test(c.number)
+                        ? {
+                            gridColumn: Math.ceil(Number(c.number) / 2),
+                            gridRow: Number(c.number) % 2 ? 1 : 2,
+                          }
+                        : undefined
+                    }
+                    data-can-stage={info?.stage ?? "loading"}
+                    aria-describedby={`can-stage-${siteId}-${c.id}`}
+                    aria-pressed={c.id === canId}
+                    onClick={() => setCanId(c.id)}
+                    title={`${description} · ${c.slots} configured locations${!c.active ? " · Inactive" : ""}`}
+                  >
+                    <span className="atlas-can-button-label">
+                      <span className="atlas-map-can-prefix" aria-hidden="true">
+                        Can{" "}
+                      </span>
+                      {c.number}
+                    </span>
+                    <span className="atlas-can-button-count" aria-hidden="true">
+                      {info ? info.miners : "—"}
+                    </span>
+                    {!c.active && <span>Inactive</span>}
+                    <span
+                      className="sr-only"
+                      id={`can-stage-${siteId}-${c.id}`}
+                    >
+                      {description}
+                    </span>
+                  </button>
+                )
+              })}
               {building && !cans.length && (
                 <p>No cans configured in this building.</p>
               )}
@@ -174,6 +213,7 @@ export function LiveSiteMap({
             key={`${siteId}-${buildingId}-${refreshKey}-${refresh}`}
             siteId={siteId}
             buildingId={buildingId}
+            onSummary={receiveSummary}
             canNumber={cans.find((c) => c.id === canId)?.number ?? null}
             canMap={currentMap?.map ?? null}
             canError={currentMap?.error ?? ""}
@@ -203,6 +243,7 @@ export function LiveSiteMap({
             })
           }}
           onMiner={onMiner}
+          onAction={onAction}
           onRefresh={() => setRefresh((v) => v + 1)}
         />
       )}
@@ -212,12 +253,14 @@ export function LiveSiteMap({
 function BuildingInventory({
   siteId,
   buildingId,
+  onSummary,
   canNumber,
   canMap,
   canError,
 }: {
   siteId: number
   buildingId: number
+  onSummary: (data: BuildingMapSummary | null) => void
   canNumber: string | null
   canMap: LiveCanMap | null
   canError: string
@@ -226,6 +269,7 @@ function BuildingInventory({
   const [error, setError] = useState("")
   const [retry, setRetry] = useState(0)
   useEffect(() => {
+    onSummary(null)
     const controller = new AbortController()
     fetch(`/api/site-map/building?site=${siteId}&building=${buildingId}`, {
       signal: controller.signal,
@@ -236,7 +280,10 @@ function BuildingInventory({
         const body = await response.json()
         if (!response.ok)
           throw new Error(body.message ?? "Building inventory unavailable.")
-        if (!controller.signal.aborted) setData(body)
+        if (!controller.signal.aborted) {
+          setData(body)
+          onSummary(body)
+        }
       })
       .catch((failure) => {
         if (!controller.signal.aborted)
@@ -247,7 +294,7 @@ function BuildingInventory({
           )
       })
     return () => controller.abort()
-  }, [siteId, buildingId, retry])
+  }, [siteId, buildingId, retry, onSummary])
   return (
     <section
       className="atlas-building-inventory"
@@ -337,6 +384,7 @@ function CanGrid({
   onReturnToLast,
   onPortSelect,
   onMiner,
+  onAction,
   onRefresh,
 }: {
   map: LiveCanMap | null
@@ -346,6 +394,7 @@ function CanGrid({
   lastPortAvailable: boolean
   onReturnToLast: () => void
   onPortSelect: (cell: MapCell) => void
+  onAction: (context: ActionContext) => void
   onMiner: (id: number) => void
   onRefresh: () => void
 }) {
@@ -530,6 +579,46 @@ function CanGrid({
                       </span>
                     ))}
                   </div>
+                  <section
+                    className="atlas-can-stage-guide"
+                    aria-label="Can button guide"
+                  >
+                    <h3>Can buttons</h3>
+                    <p>
+                      The left side is the can number; the right side counts
+                      unique miners physically in the can or reserved to its
+                      ports, including miners away in repair.
+                    </p>
+                    <ul>
+                      <li>
+                        <i data-can-stage="healthy" />
+                        95–100% of assigned miners hashing: green.
+                      </li>
+                      <li>
+                        <i data-can-stage="warning" />
+                        90–under 95% hashing: orange.
+                      </li>
+                      <li>
+                        <i data-can-stage="critical" />
+                        Below 90% hashing: red.
+                      </li>
+                      <li>
+                        <i data-can-stage="empty" />
+                        No assigned miners: faint gray.
+                      </li>
+                      <li>
+                        <i data-can-stage="unknown" />
+                        Miners assigned but hashing readings unavailable:
+                        neutral.
+                      </li>
+                    </ul>
+                    <p>
+                      Hashing percentage needs fresh readings for every assigned
+                      miner. No live telemetry is connected yet, so populated
+                      cans currently show the neutral state. Inventory counts
+                      alone do not indicate mining health.
+                    </p>
+                  </section>
                   <p className="atlas-map-help">
                     Values are TH/s. Hover or focus for port details; click for
                     options. Use arrow keys to move between ports.
@@ -718,15 +807,57 @@ function CanGrid({
                         )}
                       </div>
                       <h3>Actions</h3>
-                      <button disabled className="atlas-port-future">
-                        Disconnect miner
-                      </button>
-                      <button disabled className="atlas-port-future">
-                        Replace miner
-                      </button>
-                      <p className="atlas-port-footnote">
-                        Movement actions are not connected yet.
-                      </p>
+                      {!payload.occupant ? (
+                        <Popover.Close
+                          className="atlas-port-action"
+                          disabled={
+                            !payload.locationId ||
+                            !payload.active ||
+                            payload.conflict
+                          }
+                          onClick={() =>
+                            onAction({
+                              mode: "move",
+                              locationId: payload.locationId!,
+                              ...(payload.reservation
+                                ? { minerId: payload.reservation.id }
+                                : {}),
+                            })
+                          }
+                        >
+                          Add a miner here
+                        </Popover.Close>
+                      ) : (
+                        <>
+                          <Popover.Close
+                            className="atlas-port-action"
+                            onClick={() =>
+                              onAction({
+                                mode: "move",
+                                minerId: payload.occupant!.id,
+                              })
+                            }
+                          >
+                            Update location
+                          </Popover.Close>
+                          <Popover.Close
+                            className="atlas-port-action"
+                            onClick={() =>
+                              onAction({
+                                mode: "edit",
+                                minerId: payload.occupant!.id,
+                              })
+                            }
+                          >
+                            Update miner
+                          </Popover.Close>
+                        </>
+                      )}
+                      {!payload.locationId && (
+                        <p className="atlas-port-footnote">
+                          Configure this location before assigning a miner.
+                        </p>
+                      )}
                     </>
                   )}
                 </Popover.Popup>
