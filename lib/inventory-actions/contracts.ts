@@ -205,3 +205,22 @@ export const insertSchema = z
       })
   })
 export type InsertCommand = z.infer<typeof insertSchema>
+
+export const createPalletSchema = z
+  .object({
+    kind: z.literal("create-pallet"),
+    siteId: id,
+    name: z.string().trim().min(1, "Enter the pallet name.").max(200),
+    code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(
+        /^[A-Z0-9][A-Z0-9._-]{0,99}$/,
+        "Use a pallet code with letters, numbers, dots, hyphens or underscores (up to 100 characters)."
+      ),
+    notes: z.string().trim().max(2000).default(""),
+    submissionKey: z.uuid(),
+  })
+  .strict()
+export type CreatePalletCommand = z.infer<typeof createPalletSchema>

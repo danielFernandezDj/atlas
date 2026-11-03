@@ -743,3 +743,10 @@
   overflow-wrap: anywhere;
   margin-top: 5px;
 }
+
+.atlas-dialog.atlas-pallet-dialog {
+  width: min(520px, calc(100vw - 24px));
+}
+.atlas-create-pallet-form {
+  margin-top: 18px;
+}

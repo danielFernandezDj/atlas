@@ -874,8 +874,8 @@ function PalletPicker({
                 ))}
                 {!data.items.length && (
                   <p>
-                    No active pallets match. Add the pallet to site inventory
-                    before creating scrap miners.
+                    No active pallets match. Create a pallet from Quick actions
+                    before adding scrap miners.
                   </p>
                 )}
               </div>

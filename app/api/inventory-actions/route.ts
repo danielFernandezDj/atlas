@@ -5,6 +5,7 @@ import {
   actionSchema,
   insertSchema,
   createBatchSchema,
+  createPalletSchema,
 } from "@/lib/inventory-actions/contracts"
 import {
   readActionOptions,
@@ -20,6 +21,7 @@ import {
   performInsertBatch,
   performCreateBatch,
 } from "@/lib/inventory-actions/write"
+import { performCreatePallet } from "@/lib/inventory-actions/create-pallet"
 import { parseMinerId } from "@/lib/miners/read-inventory"
 export const dynamic = "force-dynamic"
 const headers = { "Cache-Control": "no-store" }
@@ -109,6 +111,23 @@ export async function POST(request: Request) {
       body = JSON.parse(text)
     } catch {
       throw new ActionError(400, "Invalid request.")
+    }
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "kind" in body &&
+      body.kind === "create-pallet"
+    ) {
+      const pallet = createPalletSchema.safeParse(body)
+      if (!pallet.success)
+        throw new ActionError(
+          400,
+          pallet.error.issues[0]?.message ?? "Check the pallet details."
+        )
+      return Response.json(
+        await performCreatePallet(prisma, actor.id, pallet.data),
+        { headers }
+      )
     }
     if (
       typeof body === "object" &&

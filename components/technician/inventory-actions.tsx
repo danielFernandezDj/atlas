@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { ArrowRight, MapPin, Plus, X } from "lucide-react"
+import { ArrowRight, MapPin, Plus, Package, X } from "lucide-react"
 import type {
   ActionContext,
   ActionMiner,
@@ -14,6 +14,7 @@ import {
   type InventoryPage,
 } from "@/lib/miners/inventory-contracts"
 import "./inventory-actions.css"
+import { CreatePallet } from "./create-pallet"
 import { CreateMiners } from "./create-miners"
 import { RequiredMark, LocationLabel } from "./action-fields"
 async function get<T>(
@@ -44,7 +45,7 @@ export function InventoryActions({
   const dialog = useRef<HTMLDialogElement>(null)
   const opener = useRef<HTMLElement | null>(null)
   const [mode, setMode] = useState<
-    "move" | "edit" | "create" | "insert" | null
+    "move" | "edit" | "create" | "insert" | "pallet" | null
   >(context.mode ?? null)
   const [options, setOptions] = useState<ActionOptions | null>(null),
     [error, setError] = useState("")
@@ -103,7 +104,7 @@ export function InventoryActions({
       })
     return () => c.abort()
   }, [minerId, retry])
-  function choose(next: "move" | "edit" | "create" | "insert") {
+  function choose(next: "move" | "edit" | "create" | "insert" | "pallet") {
     setMode(next)
     setError("")
   }
@@ -167,17 +168,19 @@ export function InventoryActions({
   }
   const title = result
     ? "Action completed"
-    : mode === "insert"
-      ? "Insert miners"
-      : mode === "create"
-        ? createExpanded
-          ? "Create miners"
-          : "Create miner"
-        : mode === "move"
-          ? "Update location"
-          : mode === "edit"
-            ? "Update miner"
-            : "Quick actions"
+    : mode === "pallet"
+      ? "Create pallet"
+      : mode === "insert"
+        ? "Insert miners"
+        : mode === "create"
+          ? createExpanded
+            ? "Create miners"
+            : "Create miner"
+          : mode === "move"
+            ? "Update location"
+            : mode === "edit"
+              ? "Update miner"
+              : "Quick actions"
   return (
     <dialog
       ref={dialog}
@@ -188,7 +191,9 @@ export function InventoryActions({
           ? "atlas-insert-dialog"
           : mode === "create"
             ? "atlas-create-serial-dialog"
-            : "",
+            : mode === "pallet"
+              ? "atlas-pallet-dialog"
+              : "",
       ].join(" ")}
       aria-labelledby="inventory-action-title"
       onCancel={(event) => {
@@ -272,13 +277,21 @@ export function InventoryActions({
                 "Register ready or scrap miners, then review and create the batch.",
                 Plus,
               ],
+              [
+                "pallet",
+                "Create pallet",
+                "Add a shared pallet location at a site.",
+                Package,
+              ],
             ].map(([key, label, description, Icon]) => {
               const I = Icon as typeof Plus
               return (
                 <button
                   key={String(key)}
                   onClick={() =>
-                    choose(key as "move" | "edit" | "create" | "insert")
+                    choose(
+                      key as "move" | "edit" | "create" | "insert" | "pallet"
+                    )
                   }
                 >
                   <I size={20} />
@@ -291,6 +304,15 @@ export function InventoryActions({
               )
             })}
           </div>
+        ) : mode === "pallet" ? (
+          <CreatePallet
+            options={options}
+            siteId={siteId}
+            onSaved={onSaved}
+            onClose={onClose}
+            onBack={() => setMode(null)}
+            onBusyChange={setBusy}
+          />
         ) : mode === "create" ? (
           <CreateMiners
             options={options}
