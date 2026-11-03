@@ -33,9 +33,10 @@ rate, red 0 H, and light purple S for an explicit sleep state. Samples older tha
 two minutes, invalid values, or absent readings remain unknown. The threshold
 requires a real expected rate; no universal 78 TH/s threshold is assumed.
 
-Disconnect and Replace miner appear disabled with an explanation. Implementing
-those workflows requires authorization, concurrency protection and history
-recording; the current map never changes assignments.
+Port menus now launch the authenticated inventory action dialog: Add a miner here
+for empty configured locations, and Update location / Update miner for occupants.
+The map read endpoints do not mutate assignments; writes use the transactional
+inventory-actions endpoint. See `inventory-actions.md`.
 
 ## Compact controls and building inventory
 
@@ -79,7 +80,6 @@ contains the status legend, telemetry availability, units, coordinate explanatio
 keyboard/hover instructions, and scope explanation for building/can counts.
 Actual map data errors and coordinate warnings stay visible. Each port box shows
 its row/column address at the top right and its state/rate at the lower left.
-
 
 ## Last working port
 

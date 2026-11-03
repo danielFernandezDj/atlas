@@ -20,7 +20,7 @@ Postgres; search is not limited to the rows already loaded in the browser.
 
 Both endpoints require a current Neon Auth session with verified email and an
 active `public.users` record matching that email. As with the dashboard, all
-active staff roles can read all sites. No write methods are exposed. Responses
+active staff roles can read all sites. These read endpoints expose no write methods; inventory commands use the separate authenticated `/api/inventory-actions` endpoint. Responses
 are not cached. Invalid filters return 400, missing miners 404, unauthenticated
 requests 401, unapproved accounts 403, and unavailable reads 503.
 
@@ -42,5 +42,4 @@ rather than invent a technician. The browser aborts stale reads during search,
 pagination and detail changes. Closing search cancels its request and restores the Search button's
 focus. Data errors have retry actions rather than becoming false empty results.
 
-Registration, movement recording and component replacement remain separate
-future write integrations; this connection does not mutate inventory.
+Registration, movement recording and metadata updates are connected through the separate inventory action dialog. Component replacement remains a future integration. See `inventory-actions.md`.

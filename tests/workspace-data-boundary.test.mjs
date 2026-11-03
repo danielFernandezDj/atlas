@@ -67,13 +67,15 @@ test("dashboard client bundles never import the database or server query layer",
     "components/technician-dashboard.tsx",
     "components/technician/live-miner-workspace.tsx",
     "components/technician/live-site-map.tsx",
+    "components/technician/inventory-actions.tsx",
+    "components/technician/account-menu.tsx",
     "components/technician/site-overview.tsx",
     "components/technician/movement-history.tsx",
   ]) {
     for (const file of await dependencies(entry)) {
       assert.doesNotMatch(
         file,
-        /\/lib\/site-map\/read-live\.ts$|\/lib\/prisma\.ts$|\/lib\/dashboard\/read\.ts$|\/lib\/miners\/(?:read-inventory|api-access)\.ts$|\/lib\/generated\/prisma\//
+        /\/lib\/inventory-actions\/(?:access|read|write)\.ts$|\/lib\/site-map\/read-live\.ts$|\/lib\/prisma\.ts$|\/lib\/dashboard\/read\.ts$|\/lib\/miners\/(?:read-inventory|api-access)\.ts$|\/lib\/generated\/prisma\//
       )
       const source = await readFile(file, "utf8")
       assert.doesNotMatch(

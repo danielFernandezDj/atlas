@@ -11,6 +11,7 @@ import {
 import { ArrowUpRight, BookOpen, LocateFixed, RefreshCw, X } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Popover } from "@base-ui/react/popover"
+import type { ActionContext } from "@/lib/inventory-actions/contracts"
 import type { DashboardData } from "@/lib/dashboard/contracts"
 import {
   cellDescription,
@@ -28,6 +29,7 @@ export function LiveSiteMap({
   buildings,
   lastPort,
   onPortSelect,
+  onAction,
   refreshKey,
   onMiner,
 }: {
@@ -35,6 +37,7 @@ export function LiveSiteMap({
   buildings: DashboardData["buildings"]
   lastPort: LastMapPort | null
   onPortSelect: (port: LastMapPort) => void
+  onAction: (context: ActionContext) => void
   refreshKey: string
   onMiner: (id: number) => void
 }) {
@@ -203,6 +206,7 @@ export function LiveSiteMap({
             })
           }}
           onMiner={onMiner}
+          onAction={onAction}
           onRefresh={() => setRefresh((v) => v + 1)}
         />
       )}
@@ -337,6 +341,7 @@ function CanGrid({
   onReturnToLast,
   onPortSelect,
   onMiner,
+  onAction,
   onRefresh,
 }: {
   map: LiveCanMap | null
@@ -346,6 +351,7 @@ function CanGrid({
   lastPortAvailable: boolean
   onReturnToLast: () => void
   onPortSelect: (cell: MapCell) => void
+  onAction: (context: ActionContext) => void
   onMiner: (id: number) => void
   onRefresh: () => void
 }) {
@@ -718,15 +724,57 @@ function CanGrid({
                         )}
                       </div>
                       <h3>Actions</h3>
-                      <button disabled className="atlas-port-future">
-                        Disconnect miner
-                      </button>
-                      <button disabled className="atlas-port-future">
-                        Replace miner
-                      </button>
-                      <p className="atlas-port-footnote">
-                        Movement actions are not connected yet.
-                      </p>
+                      {!payload.occupant ? (
+                        <Popover.Close
+                          className="atlas-port-action"
+                          disabled={
+                            !payload.locationId ||
+                            !payload.active ||
+                            payload.conflict
+                          }
+                          onClick={() =>
+                            onAction({
+                              mode: "move",
+                              locationId: payload.locationId!,
+                              ...(payload.reservation
+                                ? { minerId: payload.reservation.id }
+                                : {}),
+                            })
+                          }
+                        >
+                          Add a miner here
+                        </Popover.Close>
+                      ) : (
+                        <>
+                          <Popover.Close
+                            className="atlas-port-action"
+                            onClick={() =>
+                              onAction({
+                                mode: "move",
+                                minerId: payload.occupant!.id,
+                              })
+                            }
+                          >
+                            Update location
+                          </Popover.Close>
+                          <Popover.Close
+                            className="atlas-port-action"
+                            onClick={() =>
+                              onAction({
+                                mode: "edit",
+                                minerId: payload.occupant!.id,
+                              })
+                            }
+                          >
+                            Update miner
+                          </Popover.Close>
+                        </>
+                      )}
+                      {!payload.locationId && (
+                        <p className="atlas-port-footnote">
+                          Configure this location before assigning a miner.
+                        </p>
+                      )}
                     </>
                   )}
                 </Popover.Popup>

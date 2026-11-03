@@ -308,7 +308,13 @@ export async function readMinerInventoryDetail(
     })),
     events: miner.history.map((event) => ({
       id: event.id,
-      kind: event.kind.replaceAll("_", " ").toLowerCase(),
+      kind:
+        event.kind === "COMPONENT_UPDATED" &&
+        !event.skeleton_id &&
+        !event.control_board_id &&
+        !event.hash_board_id
+          ? "miner details updated"
+          : event.kind.replaceAll("_", " ").toLowerCase(),
       component:
         event.skeleton_id !== null
           ? `Skeleton #${event.skeleton_id}`
