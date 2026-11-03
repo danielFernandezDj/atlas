@@ -1924,3 +1924,112 @@
     display: none;
   }
 }
+
+/* Market summary stays visible while the chart can be tucked away. */
+.atlas-bitcoin {
+  display: grid;
+  grid-template-columns: auto minmax(50px, 1fr) auto auto;
+}
+.atlas-btc-chart[hidden] {
+  display: none;
+}
+.atlas-btc-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.atlas-btc-toggle:hover {
+  border-color: var(--atlas-blue);
+  color: var(--atlas-blue);
+}
+.atlas-bitcoin[data-expanded="false"] {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding-block: 12px;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-bitcoin-label p {
+  display: none;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 18px;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price > strong {
+  font-size: 19px;
+}
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price > span,
+.atlas-bitcoin[data-expanded="false"] .atlas-btc-price > p {
+  margin-top: 0;
+}
+@media (max-width: 1023px) and (min-width: 651px) {
+  .atlas-bitcoin {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .atlas-bitcoin .atlas-btc-chart {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .atlas-bitcoin .atlas-btc-price {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .atlas-btc-toggle {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+@media (max-width: 650px) {
+  .atlas-bitcoin {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label price" "toggle toggle" "chart chart";
+    gap: 10px;
+  }
+  .atlas-bitcoin .atlas-bitcoin-label {
+    grid-area: label;
+    align-self: center;
+  }
+  .atlas-bitcoin .atlas-btc-price {
+    grid-area: price;
+  }
+  .atlas-bitcoin .atlas-btc-chart {
+    grid-area: chart;
+  }
+  .atlas-bitcoin .atlas-btc-toggle {
+    grid-area: toggle;
+    justify-self: end;
+    min-height: 36px;
+  }
+  .atlas-bitcoin[data-expanded="false"] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "label toggle" "price toggle";
+    gap: 5px 12px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-bitcoin-label h2 span {
+    display: inline;
+    margin-left: 5px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-btc-price {
+    justify-content: flex-start;
+    text-align: left;
+    gap: 4px 9px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-btc-price > strong {
+    font-size: 17px;
+  }
+  .atlas-bitcoin[data-expanded="false"] .atlas-btc-price p {
+    flex-basis: 100%;
+  }
+}
