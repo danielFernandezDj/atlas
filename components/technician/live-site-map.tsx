@@ -9,7 +9,14 @@ import {
   type FocusEvent,
   type MouseEvent,
 } from "react"
-import { ArrowUpRight, BookOpen, LocateFixed, RefreshCw, X } from "lucide-react"
+import {
+  ArrowUpRight,
+  BookOpen,
+  ListFilter,
+  LocateFixed,
+  RefreshCw,
+  X,
+} from "lucide-react"
 import { createPortal } from "react-dom"
 import { Popover } from "@base-ui/react/popover"
 import type { ActionContext } from "@/lib/inventory-actions/contracts"
@@ -20,6 +27,8 @@ import {
   matchesLastPort,
   type LastMapPort,
   portDisplay,
+  matchesPortFilter,
+  type PortState,
   portStates,
   type BuildingMapSummary,
   type LiveCanMap,
@@ -43,6 +52,7 @@ export function LiveSiteMap({
   refreshKey: string
   onMiner: (id: number) => void
 }) {
+  const [filters, setFilters] = useState<PortState[]>([])
   const [buildingId, setBuildingId] = useState<number | null>(
     buildings.find(
       (b) =>
@@ -223,6 +233,8 @@ export function LiveSiteMap({
       {canId !== null && (
         <CanGrid
           key={mapKey}
+          filters={filters}
+          onFiltersChange={setFilters}
           map={currentMap?.map ?? null}
           error={currentMap?.error ?? ""}
           lastPort={lastPort}
@@ -376,6 +388,8 @@ function BuildingInventory({
   )
 }
 function CanGrid({
+  filters,
+  onFiltersChange,
   map,
   error,
   lastPort,
@@ -387,6 +401,8 @@ function CanGrid({
   onAction,
   onRefresh,
 }: {
+  filters: PortState[]
+  onFiltersChange: (filters: PortState[]) => void
   map: LiveCanMap | null
   error: string
   lastPort: LastMapPort | null
@@ -549,6 +565,71 @@ function CanGrid({
               <strong>—</strong>
             )}
           </button>
+          <Popover.Root>
+            <Popover.Trigger
+              className="atlas-text-button"
+              aria-label="Filter map"
+            >
+              <ListFilter size={14} aria-hidden="true" />
+              Filter{filters.length ? ` (${filters.length})` : ""}
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Positioner
+                sideOffset={8}
+                align="end"
+                className="atlas-port-positioner"
+              >
+                <Popover.Popup className="atlas-map-guide atlas-map-filter">
+                  <div className="atlas-port-popup-heading">
+                    <Popover.Title>Filter map colors</Popover.Title>
+                    <Popover.Close aria-label="Close map filters">
+                      <X size={16} />
+                    </Popover.Close>
+                  </div>
+                  <p>
+                    Keep selected colors visible. Other ports stay in place with
+                    a muted background.
+                  </p>
+                  <div className="atlas-filter-options">
+                    {(Object.entries(portStates) as [PortState, string][]).map(
+                      ([state, label]) => (
+                        <label key={state}>
+                          <input
+                            type="checkbox"
+                            checked={filters.includes(state)}
+                            onChange={() =>
+                              onFiltersChange(
+                                filters.includes(state)
+                                  ? filters.filter((value) => value !== state)
+                                  : [...filters, state]
+                              )
+                            }
+                          />
+                          <i data-state={state} />
+                          <span>{label}</span>
+                          <small>{counts[state] ?? 0}</small>
+                        </label>
+                      )
+                    )}
+                  </div>
+                  <button
+                    className="atlas-text-button"
+                    onClick={() => onFiltersChange([])}
+                  >
+                    Show all colors
+                  </button>
+                  <p role="status">
+                    {
+                      map.cells.filter((cell) =>
+                        matchesPortFilter(portDisplay(cell).state, filters)
+                      ).length
+                    }{" "}
+                    of {map.cells.length} ports match
+                  </p>
+                </Popover.Popup>
+              </Popover.Positioner>
+            </Popover.Portal>
+          </Popover.Root>
           <Popover.Root>
             <Popover.Trigger className="atlas-text-button">
               <BookOpen size={14} aria-hidden="true" />
@@ -718,6 +799,10 @@ function CanGrid({
                                 onKeyDown={(event) => moveFocus(event, index)}
                                 className="atlas-port-cell"
                                 data-state={display.state}
+                                data-filter-muted={
+                                  !matchesPortFilter(display.state, filters) ||
+                                  undefined
+                                }
                                 data-last-port={
                                   matchesLastPort(cell, map.id, lastPort)
                                     ? "true"

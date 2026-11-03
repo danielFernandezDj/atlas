@@ -192,7 +192,7 @@ export function TechnicianDashboard({
           </div>
         </header>
         <main className="atlas-main" aria-busy={pending}>
-          {view === "dashboard" && (
+          {(view === "dashboard" || view === "miners") && (
             <div className="atlas-dashboard-search-row">
               <MinerInventorySearch
                 key={selectedSite?.id ?? "all"}
@@ -294,7 +294,6 @@ export function TechnicianDashboard({
             <LiveMinerWorkspace
               key={`${selectedMinerId ?? "none"}-${dashboard.loadedAt}`}
               selectedId={selectedMinerId}
-              onSearch={() => setView("dashboard")}
               refreshKey={dashboard.loadedAt}
             />
           )}

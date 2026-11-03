@@ -201,3 +201,10 @@ export const canStageLabels: Record<CanStage, string> = {
   warning: "90–under 95% hashing",
   critical: "Below 90% hashing",
 }
+
+export function matchesPortFilter(
+  state: PortState,
+  selected: readonly PortState[]
+): boolean {
+  return selected.length === 0 || selected.includes(state)
+}
