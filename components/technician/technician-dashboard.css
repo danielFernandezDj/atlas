@@ -2032,3 +2032,337 @@
     flex-basis: 100%;
   }
 }
+
+/* Compact workspace chrome leaves laptop screens for operational content. */
+.atlas-rail {
+  width: 76px;
+  padding: 18px 7px 14px;
+}
+.atlas-shell {
+  margin-left: 76px;
+}
+.atlas-logo {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 26px;
+  border-radius: 10px;
+}
+.atlas-logo svg {
+  width: 20px;
+  height: 20px;
+}
+.atlas-rail nav {
+  gap: 8px;
+}
+.atlas-rail button {
+  min-height: 56px;
+  gap: 6px;
+}
+.atlas-rail button svg {
+  width: 18px;
+  height: 18px;
+}
+.atlas-rail button span {
+  font-size: 9px;
+}
+.atlas-rail-bottom {
+  padding-top: 18px;
+}
+.atlas-topbar {
+  min-height: 62px;
+  padding: 9px 24px;
+  gap: 14px;
+}
+.atlas-site-trigger {
+  min-width: 125px;
+  max-width: 160px;
+  height: 32px;
+  padding: 0 9px;
+  font-size: 12px;
+  border-radius: 6px;
+  gap: 8px;
+}
+.atlas-site-trigger > svg {
+  width: 14px;
+  height: 14px;
+}
+.atlas-site-chevron svg {
+  width: 13px;
+  height: 13px;
+}
+.atlas-weather {
+  margin-inline: auto;
+}
+.atlas-weather-condition {
+  gap: 6px;
+}
+.atlas-weather-condition h3 {
+  font-size: 8px;
+}
+.atlas-weather-condition p {
+  font-size: 10px;
+}
+.atlas-weather-details {
+  margin-top: 4px;
+}
+.atlas-topbar-right {
+  gap: 16px;
+}
+.atlas-header-tools {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+.atlas-header-tools .atlas-chip {
+  padding: 3px 8px;
+  font-size: 9px;
+}
+.atlas-weather-source-link {
+  font-size: 8px;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.atlas-weather-source-short {
+  display: none;
+}
+.atlas-clock {
+  padding-left: 14px;
+  gap: 8px;
+}
+.atlas-clock time {
+  font-size: 12px;
+  letter-spacing: 0.2px;
+}
+.atlas-clock p {
+  font-size: 9px;
+}
+.atlas-main {
+  padding: 20px 28px;
+}
+.atlas-dashboard-search-row {
+  margin-bottom: 14px;
+}
+.atlas-miner-actions-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.atlas-compact-overview {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.atlas-compact-overview .atlas-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.atlas-compact-overview .atlas-metric {
+  padding: 16px 13px;
+}
+.atlas-compact-overview .atlas-metric-heading h2 {
+  font-size: 11px;
+}
+.atlas-compact-overview .atlas-metric-value {
+  font-size: 32px;
+  margin-block: 16px 10px;
+}
+.atlas-compact-overview .atlas-metric p {
+  font-size: 10px;
+}
+.atlas-miner-status {
+  padding: 16px 18px;
+}
+.atlas-miner-status > .atlas-section-header {
+  margin-bottom: 10px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.atlas-miner-status h2 {
+  font-size: 13px;
+}
+.atlas-miner-status .atlas-section-header > span {
+  font-size: 9px;
+}
+.atlas-miner-status-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.atlas-miner-status-body > svg {
+  width: 128px;
+  height: 128px;
+  flex-shrink: 0;
+}
+.atlas-status-total {
+  font-size: 22px;
+  font-weight: 600;
+  fill: var(--foreground);
+}
+.atlas-status-total-label {
+  font-size: 8px;
+  fill: var(--muted-foreground);
+}
+.atlas-miner-status-legend {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+}
+.atlas-miner-status-legend > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.atlas-miner-status-legend dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+}
+.atlas-miner-status-legend i {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.atlas-miner-status-legend dd {
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.atlas-miner-status-legend dd > span {
+  display: inline-block;
+  min-width: 40px;
+  margin-left: 10px;
+  text-align: right;
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.atlas-status-data-note {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  margin-top: 9px;
+  line-height: 1.4;
+}
+.atlas-mining-readings {
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.atlas-mining-readings h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.atlas-mining-readings-placeholder {
+  min-height: 32px;
+}
+@media (max-width: 1100px) {
+  .atlas-compact-overview {
+    grid-template-columns: 1fr;
+  }
+  .atlas-compact-overview .atlas-metric-value {
+    margin-block: 10px 6px;
+  }
+  .atlas-miner-status-body {
+    justify-content: center;
+  }
+  .atlas-miner-status-legend {
+    max-width: 430px;
+  }
+}
+@media (max-width: 650px) {
+  .atlas-rail {
+    width: 58px;
+    padding: 15px 4px;
+  }
+  .atlas-shell {
+    margin-left: 58px;
+  }
+  .atlas-logo {
+    width: 31px;
+    height: 31px;
+    margin-bottom: 20px;
+  }
+  .atlas-rail button {
+    min-height: 51px;
+    gap: 5px;
+  }
+  .atlas-rail button span {
+    font-size: 7.5px;
+  }
+  .atlas-main {
+    padding: 14px 12px;
+  }
+  .atlas-topbar {
+    padding: 9px 12px;
+    gap: 10px;
+  }
+  .atlas-topbar-right {
+    gap: 10px;
+  }
+  .atlas-weather-source-full {
+    display: none;
+  }
+  .atlas-weather-source-short {
+    display: inline;
+  }
+  .atlas-site-trigger {
+    min-width: 115px;
+    height: 32px;
+    font-size: 11px;
+  }
+  .atlas-clock {
+    padding-left: 0;
+  }
+  .atlas-clock time {
+    font-size: 11px;
+  }
+  .atlas-clock p {
+    font-size: 8px;
+  }
+  .atlas-weather {
+    padding-top: 8px;
+  }
+  .atlas-compact-overview .atlas-metric {
+    padding: 12px 9px;
+  }
+  .atlas-compact-overview .atlas-metric-heading {
+    gap: 4px;
+  }
+  .atlas-compact-overview .atlas-metric-heading h2 {
+    font-size: 9px;
+  }
+  .atlas-compact-overview .atlas-metric-value {
+    font-size: 25px;
+  }
+  .atlas-compact-overview .atlas-metric p {
+    display: none;
+  }
+  .atlas-miner-status {
+    padding: 14px 12px;
+  }
+  .atlas-miner-status-body {
+    gap: 10px;
+  }
+  .atlas-miner-status-body > svg {
+    width: 104px;
+    height: 104px;
+  }
+  .atlas-miner-status-legend dt {
+    font-size: 9px;
+    gap: 5px;
+  }
+  .atlas-miner-status-legend dd {
+    font-size: 10px;
+  }
+  .atlas-miner-status-legend dd > span {
+    min-width: 32px;
+    margin-left: 5px;
+    font-size: 8px;
+  }
+}

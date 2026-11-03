@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useId, useState, useSyncExternalStore } from "react"
+import { useEffect, useId, useState } from "react"
 import {
   Bitcoin,
   ChartNoAxesCombined,
@@ -17,23 +17,8 @@ type Market = {
   fetchedAt: string
   source: string
 }
-const largeScreenQuery = "(min-width: 1024px)"
-function subscribeToScreen(onChange: () => void) {
-  const media = window.matchMedia(largeScreenQuery)
-  media.addEventListener("change", onChange)
-  return () => media.removeEventListener("change", onChange)
-}
-const largeScreenSnapshot = () => window.matchMedia(largeScreenQuery).matches
-const serverScreenSnapshot = () => false
-
 export function BitcoinStrip() {
-  const largeScreen = useSyncExternalStore(
-    subscribeToScreen,
-    largeScreenSnapshot,
-    serverScreenSnapshot
-  )
-  const [expandedChoice, setExpandedChoice] = useState<boolean | null>(null)
-  const expanded = expandedChoice ?? largeScreen
+  const [expanded, setExpanded] = useState(false)
   const chartId = useId()
   const [market, setMarket] = useState<Market | null>(null)
   const [failed, setFailed] = useState(false)
@@ -175,7 +160,7 @@ export function BitcoinStrip() {
             className="atlas-btc-toggle"
             aria-expanded={expanded}
             aria-controls={chartId}
-            onClick={() => setExpandedChoice(!expanded)}
+            onClick={() => setExpanded(!expanded)}
           >
             {expanded ? (
               <ChevronUp size={15} aria-hidden="true" />

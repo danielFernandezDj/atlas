@@ -79,6 +79,8 @@ export async function readDashboard(
       const [
         deployed,
         repair,
+        linked,
+        repairReserved,
         staging,
         pallet,
         slots,
@@ -92,6 +94,20 @@ export async function readDashboard(
       ] = await Promise.all([
         minerAt("DEPLOYMENT_SLOT"),
         minerAt("REPAIR"),
+        tx.miner.count({
+          where: {
+            OR: [
+              { current_location: { site_id: siteId } },
+              { reserved_port: { location: { site_id: siteId } } },
+            ],
+          },
+        }),
+        tx.miner.count({
+          where: {
+            reserved_port: { location: { site_id: siteId } },
+            current_location: { kind: "REPAIR" },
+          },
+        }),
         minerAt("STAGING"),
         minerAt("PALLET"),
         tx.locations.count({
@@ -175,6 +191,8 @@ export async function readDashboard(
           loadedAt: new Date().toISOString(),
           summary: {
             miners: deployed + repair + staging + pallet,
+            linked,
+            repairReserved,
             deployed,
             repair,
             staging,

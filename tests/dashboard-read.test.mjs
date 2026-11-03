@@ -55,6 +55,23 @@ function database({
         sites: { findMany: async () => sites },
         miner: {
           count: async (args) => {
+            if (args.where.OR) {
+              assert.deepEqual(args.where.OR, [
+                { current_location: { site_id: expectedSite } },
+                { reserved_port: { location: { site_id: expectedSite } } },
+              ])
+              calls.push({ method: "linked", args })
+              return 11
+            }
+            if (args.where.reserved_port) {
+              scoped(
+                "repairReserved",
+                args,
+                args.where.reserved_port.location.site_id
+              )
+              assert.equal(args.where.current_location.kind, "REPAIR")
+              return 2
+            }
             scoped(
               "miner",
               args,
@@ -158,6 +175,8 @@ test("site dashboard scopes every count, component and cross-site movement query
   assert.equal(result.dashboard.selectedSite.id, 2)
   assert.deepEqual(result.dashboard.summary, {
     miners: 10,
+    linked: 11,
+    repairReserved: 2,
     deployed: 3,
     repair: 2,
     staging: 1,

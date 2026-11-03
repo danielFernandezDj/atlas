@@ -123,7 +123,6 @@ export function MinerInventorySearch({
   }
   return (
     <div className="atlas-dashboard-miner-search">
-      <p className="atlas-miner-search-caption">Find a miner</p>
       <form className="atlas-directory-filters" onSubmit={search}>
         <label className="atlas-directory-search">
           <Search size={16} aria-hidden="true" />

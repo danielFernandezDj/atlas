@@ -22,7 +22,7 @@ import type { LastMapPort } from "@/lib/site-map/live-contracts"
 import { LiveSiteMap } from "./technician/live-site-map"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
-import { WeatherOutlook } from "./technician/weather-outlook"
+import { WeatherOutlook, WeatherSourceLink } from "./technician/weather-outlook"
 import { SiteClock } from "./technician/site-clock"
 import { InventoryActions } from "./technician/inventory-actions"
 import { AccountMenu } from "./technician/account-menu"
@@ -36,11 +36,6 @@ const views = [
   { id: "site-map", label: "Site map", Icon: Map },
   { id: "miners", label: "Miners", Icon: Cpu },
 ] as const
-const titles: Record<View, string> = {
-  dashboard: "Site dashboard",
-  "site-map": "Site map",
-  miners: "Miner workspace",
-}
 
 type TechnicianDashboardProps = {
   dashboard: DashboardData
@@ -109,8 +104,8 @@ export function TechnicianDashboard({
       <div className="atlas-shell">
         <header className="atlas-topbar">
           <div className="atlas-site-selector">
-            <label htmlFor="active-site">
-              Workspace / <span>Site</span>
+            <label htmlFor="active-site" className="sr-only">
+              Workspace site
             </label>
             <Select.Root
               value={selectedSite ? String(selectedSite.id) : null}
@@ -181,52 +176,45 @@ export function TechnicianDashboard({
                   ? `${selectedSite.name}${!selectedSite.is_active ? " · Inactive site" : ""}`
                   : "No site selected"}
             </span>
-            <button
-              className="atlas-chip"
-              disabled={pending}
-              onClick={() => startTransition(() => router.refresh())}
-            >
-              Refresh
-            </button>
+            <div className="atlas-header-tools">
+              <button
+                className="atlas-chip"
+                disabled={pending}
+                onClick={() => startTransition(() => router.refresh())}
+              >
+                Refresh
+              </button>
+              {selectedSite && (
+                <WeatherSourceLink siteName={selectedSite.name} />
+              )}
+            </div>
             <SiteClock />
           </div>
         </header>
         <main className="atlas-main" aria-busy={pending}>
-          {view !== "site-map" && (
-            <div className="atlas-page-heading">
-              <div>
-                <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
-                <h1>{titles[view]}</h1>
-                <p className="atlas-muted">
-                  {view === "miners"
-                    ? "Selected miner identity, components and recorded history."
-                    : (selectedSite?.description ??
-                      "Site inventory and recent recorded movements.")}
-                </p>
-              </div>
-              {view === "miners" && (
-                <button
-                  className="atlas-action-primary"
-                  disabled={!selectedMinerId}
-                  onClick={() =>
-                    setActionContext({ minerId: selectedMinerId! })
-                  }
-                >
-                  <Zap size={15} />
-                  Miner actions
-                </button>
-              )}
-              {view === "dashboard" && (
-                <MinerInventorySearch
-                  key={selectedSite?.id ?? "all"}
-                  sites={sites}
-                  initialSite={selectedSite?.id ?? null}
-                  onSelect={(id) => {
-                    setSelectedMinerId(id)
-                    setView("miners")
-                  }}
-                />
-              )}
+          {view === "dashboard" && (
+            <div className="atlas-dashboard-search-row">
+              <MinerInventorySearch
+                key={selectedSite?.id ?? "all"}
+                sites={sites}
+                initialSite={selectedSite?.id ?? null}
+                onSelect={(id) => {
+                  setSelectedMinerId(id)
+                  setView("miners")
+                }}
+              />
+            </div>
+          )}
+          {view === "miners" && (
+            <div className="atlas-miner-actions-toolbar">
+              <button
+                className="atlas-action-primary"
+                disabled={!selectedMinerId}
+                onClick={() => setActionContext({ minerId: selectedMinerId! })}
+              >
+                <Zap size={15} />
+                Miner actions
+              </button>
             </div>
           )}
           {view === "dashboard" && (

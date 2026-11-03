@@ -32,7 +32,7 @@ The NWS link opens the pin's detailed forecast; its tooltip includes issuance ti
 
 At viewport widths of 1600px and up the header shows all seven dates. Smaller
 screens show the first three; the hidden dates are also excluded from keyboard
-and screen-reader navigation. The outlook heading follows the visible count.
+and screen-reader navigation. The redundant outlook heading is omitted. The full weather link is below Refresh, using the compact NWS label on phones.
 The site selector uses a styled, keyboard-accessible Base UI menu with the
 selected site marked and a visible dropdown arrow.
 

@@ -1,46 +1,44 @@
-import { Building2, Cpu, Layers, MapPin, Wrench } from "lucide-react"
+import { Cpu, MapPin, Wrench } from "lucide-react"
 import type { DashboardData } from "@/lib/dashboard/contracts"
-
 const number = (value: number) => new Intl.NumberFormat("en-US").format(value)
-
 export function SiteOverview({ dashboard }: { dashboard: DashboardData }) {
-  const { summary, buildings } = dashboard
+  const { summary } = dashboard
   if (!summary) return null
+  const total = summary.linked,
+    repair = summary.repairReserved,
+    unknown = Math.max(0, total - repair)
+  const percentage = (value: number) =>
+    total ? `${((value / total) * 100).toFixed(1)}%` : "0%"
+  const circumference = 2 * Math.PI * 46
   const cards = [
     {
       label: "Miners at this site",
       value: summary.miners,
       Icon: Cpu,
-      note: "Physical location recorded at this site",
+      note: "Physical inventory",
     },
     {
       label: "Deployed miners",
       value: summary.deployed,
       Icon: MapPin,
-      note: "Assigned to deployment slots · live status unknown",
+      note: "At deployment locations",
     },
     {
       label: "Miners in repair",
       value: summary.repair,
       Icon: Wrench,
-      note: `${number(summary.staging)} in staging · ${number(summary.pallet)} on pallets`,
-    },
-    {
-      label: "Configured deployment slots",
-      value: summary.slots,
-      Icon: Layers,
-      note: `${number(summary.occupied)} occupied · ${number(summary.reserved)} reserved`,
+      note: `${number(summary.staging)} staging · ${number(summary.pallet)} on pallets`,
     },
   ]
   return (
     <>
-      <div className="atlas-overview-grid">
+      <div className="atlas-overview-grid atlas-compact-overview">
         <section className="atlas-metrics" aria-label="Site inventory counts">
           {cards.map(({ label, value, Icon, note }) => (
             <article key={label} className="atlas-card atlas-metric">
               <div className="atlas-metric-heading">
                 <h2>{label}</h2>
-                <Icon size={17} aria-hidden="true" />
+                <Icon size={15} aria-hidden="true" />
               </div>
               <div className="atlas-metric-value">{number(value)}</div>
               <p className="atlas-muted">{note}</p>
@@ -48,95 +46,116 @@ export function SiteOverview({ dashboard }: { dashboard: DashboardData }) {
           ))}
         </section>
         <section
-          className="atlas-card atlas-status"
-          aria-labelledby="installed-components-title"
+          className="atlas-card atlas-status atlas-miner-status"
+          aria-labelledby="miner-status-title"
         >
           <div className="atlas-section-header">
-            <h2 id="installed-components-title">Installed components</h2>
+            <h2 id="miner-status-title">Miner status</h2>
+            <span className="atlas-muted">
+              At site or reserved to its ports
+            </span>
           </div>
-          <p className="atlas-muted">
-            Parts assigned to miners physically at this site.
-          </p>
-          <dl className="atlas-dashboard-components">
-            <div>
-              <dt>Skeletons</dt>
-              <dd>{number(summary.skeletons)}</dd>
-            </div>
-            <div>
-              <dt>Control boards</dt>
-              <dd>{number(summary.controlBoards)}</dd>
-            </div>
-            <div>
-              <dt>Hashboards</dt>
-              <dd>{number(summary.hashBoards)}</dd>
-            </div>
-          </dl>
-          <p className="atlas-subtle">
-            Loose inventory is excluded. Installed counts do not indicate mining
-            health.
+          <div className="atlas-miner-status-body">
+            <svg
+              viewBox="0 0 120 120"
+              role="img"
+              aria-label={`${number(total)} linked miners; ${number(repair)} in repair with a reserved port (${percentage(repair)}). ${number(unknown)} have unavailable live mining status.`}
+            >
+              <circle
+                cx="60"
+                cy="60"
+                r="46"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="12"
+              />
+              {total > 0 && repair > 0 && (
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="46"
+                  fill="none"
+                  stroke="#4a83e7"
+                  strokeWidth="12"
+                  strokeDasharray={`${(repair / total) * circumference} ${circumference}`}
+                  transform="rotate(-90 60 60)"
+                />
+              )}
+              <text
+                x="60"
+                y="59"
+                textAnchor="middle"
+                className="atlas-status-total"
+              >
+                {number(total)}
+              </text>
+              <text
+                x="60"
+                y="75"
+                textAnchor="middle"
+                className="atlas-status-total-label"
+              >
+                linked miners
+              </text>
+            </svg>
+            <dl className="atlas-miner-status-legend">
+              {[
+                {
+                  label: "Healthy / hashing",
+                  color: "#3fb87c",
+                  count: "—",
+                  percent: "—",
+                },
+                {
+                  label: "Warning",
+                  color: "#e9a03b",
+                  count: "—",
+                  percent: "—",
+                },
+                {
+                  label: "Zero hash",
+                  color: "#e65e65",
+                  count: "—",
+                  percent: "—",
+                },
+                {
+                  label: "Repair · reserved",
+                  color: "#4a83e7",
+                  count: number(repair),
+                  percent: percentage(repair),
+                },
+                {
+                  label: "Status unavailable",
+                  color: "var(--muted-foreground)",
+                  count: number(unknown),
+                  percent: percentage(unknown),
+                },
+              ].map((item) => (
+                <div key={item.label}>
+                  <dt>
+                    <i style={{ background: item.color }} />
+                    {item.label}
+                  </dt>
+                  <dd>
+                    {item.count}
+                    <span>{item.percent}</span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <p className="atlas-status-data-note">
+            Live hashing data is not connected. Repair reservations are recorded
+            inventory, not telemetry.
           </p>
         </section>
       </div>
       <section
-        className="atlas-card atlas-temperature atlas-dashboard-section"
-        aria-labelledby="site-configuration-title"
-      >
-        <div className="atlas-section-header">
-          <div>
-            <h2 id="site-configuration-title">
-              <Building2 size={17} aria-hidden="true" /> Site configuration
-            </h2>
-            <p className="atlas-muted">
-              Registered buildings, cans, and deployment slots. Inactive
-              configuration remains visible.
-            </p>
-          </div>
-        </div>
-        {!buildings.length ? (
-          <p className="atlas-empty">
-            No buildings have been configured at this site yet.
-          </p>
-        ) : (
-          buildings.map((building) => (
-            <div className="atlas-building" key={building.id}>
-              <div className="atlas-building-heading">
-                <h3>
-                  Building {building.number}
-                  {!building.active && " · Inactive"}
-                </h3>
-                <span className="atlas-muted">
-                  {number(building.cans.length)} cans
-                </span>
-              </div>
-              {!building.cans.length ? (
-                <p className="atlas-muted">No cans configured.</p>
-              ) : (
-                <div className="atlas-dashboard-cans">
-                  {building.cans.map((can) => (
-                    <div className="atlas-can" key={can.id}>
-                      <span>
-                        Can {can.number}
-                        {!can.active && " · Inactive"}
-                      </span>
-                      <strong>{number(can.slots)}</strong>
-                      <span>configured slots</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </section>
-      <section
-        className="atlas-card atlas-temperature atlas-dashboard-section"
+        className="atlas-card atlas-mining-readings"
         aria-labelledby="mining-readings-title"
       >
         <h2 id="mining-readings-title">Mining readings</h2>
-        <p className="atlas-muted">
-          No live hash-rate, temperature, or online-status readings have been
-          received yet.
-        </p>
+        <div className="atlas-mining-readings-placeholder" />
       </section>
     </>
   )
