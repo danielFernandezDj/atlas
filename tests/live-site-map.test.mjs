@@ -11,15 +11,14 @@ const compile = async (p) =>
   }).outputText
 const url = (s) =>
   `data:text/javascript;base64,${Buffer.from(s).toString("base64")}`
-const { portDisplay, matchesLastPort } = await import(
-  url(await compile("../lib/site-map/live-contracts.ts"))
-)
+const contractsUrl = url(await compile("../lib/site-map/live-contracts.ts"))
+const { portDisplay, matchesLastPort, canHealth, summarizeCanAssignments } =
+  await import(contractsUrl)
 const { readLiveCanMap, readBuildingMapSummary } = await import(
   url(
-    (await compile("../lib/site-map/read-live.ts")).replace(
-      'import "server-only";',
-      ""
-    )
+    (await compile("../lib/site-map/read-live.ts"))
+      .replace('import "server-only";', "")
+      .replace('"./live-contracts"', JSON.stringify(contractsUrl))
   )
 )
 const occupant = {
@@ -247,6 +246,23 @@ test("building summary includes reserved repair miners without counting unrelate
             return [14, 10, 2, 1, 1][calls.length - 1]
           },
         },
+        can: {
+          findMany: async (args) => {
+            assert.deepEqual(args.where, { building_id: 7 })
+            return [
+              {
+                id: 2,
+                locations: [
+                  {
+                    current_miners: [{ id: 1 }],
+                    ports: [{ reserved_miner_id: 1 }, { reserved_miner_id: 2 }],
+                  },
+                ],
+              },
+              { id: 3, locations: [] },
+            ]
+          },
+        },
         port_index: {
           count: async (args) => {
             assert.deepEqual(args.where, {
@@ -264,6 +280,10 @@ test("building summary includes reserved repair miners without counting unrelate
   assert.equal(summary.deployed, 10)
   assert.equal(summary.repair, 2)
   assert.equal(summary.reserved, 13)
+  assert.deepEqual(summary.cans, [
+    { id: 2, miners: 2, stage: "unknown", hashingPercent: null },
+    { id: 3, miners: 0, stage: "empty", hashingPercent: null },
+  ])
   const linked = {
     OR: [
       { current_location: { building_id: 7 } },
@@ -345,4 +365,39 @@ test("last-port matching uses the can, coordinates and stable location identity"
     }),
     true
   )
+})
+
+test("can health thresholds handle exact boundaries and require complete telemetry", () => {
+  assert.equal(canHealth(100, 100, 100).stage, "healthy")
+  assert.equal(canHealth(100, 95, 100).stage, "healthy")
+  assert.equal(canHealth(100, 94, 100).stage, "warning")
+  assert.equal(canHealth(100, 90, 100).stage, "warning")
+  assert.equal(canHealth(100, 89, 100).stage, "critical")
+  assert.equal(canHealth(100, 0, 100).stage, "critical")
+  assert.equal(canHealth(0, null).stage, "empty")
+  for (const args of [
+    [10, null, 0],
+    [10, 9, 9],
+    [10, 11, 10],
+    [10, -1, 10],
+  ])
+    assert.equal(canHealth(...args).stage, "unknown")
+})
+test("can counts include reserved repair miners but count a physical/reserved miner only once", () => {
+  const result = summarizeCanAssignments({
+    id: 1,
+    locations: [
+      {
+        current_miners: [{ id: 1 }, { id: 2 }],
+        ports: [
+          { reserved_miner_id: 1 },
+          { reserved_miner_id: 3 },
+          { reserved_miner_id: null },
+        ],
+      },
+    ],
+  })
+  assert.equal(result.miners, 3)
+  assert.equal(result.stage, "unknown")
+  assert.equal(result.hashingPercent, null)
 })
