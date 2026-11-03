@@ -14,6 +14,7 @@ import {
   type InventoryPage,
 } from "@/lib/miners/inventory-contracts"
 import "./inventory-actions.css"
+import { ManagePallets } from "./manage-pallets"
 import { CreatePallet } from "./create-pallet"
 import { CreateMiners } from "./create-miners"
 import { RequiredMark, LocationLabel } from "./action-fields"
@@ -45,7 +46,7 @@ export function InventoryActions({
   const dialog = useRef<HTMLDialogElement>(null)
   const opener = useRef<HTMLElement | null>(null)
   const [mode, setMode] = useState<
-    "move" | "edit" | "create" | "insert" | "pallet" | null
+    "move" | "edit" | "create" | "insert" | "pallet" | "manage-pallets" | null
   >(context.mode ?? null)
   const [options, setOptions] = useState<ActionOptions | null>(null),
     [error, setError] = useState("")
@@ -104,7 +105,9 @@ export function InventoryActions({
       })
     return () => c.abort()
   }, [minerId, retry])
-  function choose(next: "move" | "edit" | "create" | "insert" | "pallet") {
+  function choose(
+    next: "move" | "edit" | "create" | "insert" | "pallet" | "manage-pallets"
+  ) {
     setMode(next)
     setError("")
   }
@@ -168,19 +171,21 @@ export function InventoryActions({
   }
   const title = result
     ? "Action completed"
-    : mode === "pallet"
-      ? "Create pallet"
-      : mode === "insert"
-        ? "Insert miners"
-        : mode === "create"
-          ? createExpanded
-            ? "Create miners"
-            : "Create miner"
-          : mode === "move"
-            ? "Update location"
-            : mode === "edit"
-              ? "Update miner"
-              : "Quick actions"
+    : mode === "manage-pallets"
+      ? "Manage pallets"
+      : mode === "pallet"
+        ? "Create pallet"
+        : mode === "insert"
+          ? "Insert miners"
+          : mode === "create"
+            ? createExpanded
+              ? "Create miners"
+              : "Create miner"
+            : mode === "move"
+              ? "Update location"
+              : mode === "edit"
+                ? "Update miner"
+                : "Quick actions"
   return (
     <dialog
       ref={dialog}
@@ -283,6 +288,12 @@ export function InventoryActions({
                 "Add a shared pallet location at a site.",
                 Package,
               ],
+              [
+                "manage-pallets",
+                "Manage pallets",
+                "View all pallets, edit details, archive or remove unused pallets.",
+                Package,
+              ],
             ].map(([key, label, description, Icon]) => {
               const I = Icon as typeof Plus
               return (
@@ -290,7 +301,13 @@ export function InventoryActions({
                   key={String(key)}
                   onClick={() =>
                     choose(
-                      key as "move" | "edit" | "create" | "insert" | "pallet"
+                      key as
+                        | "move"
+                        | "edit"
+                        | "create"
+                        | "insert"
+                        | "pallet"
+                        | "manage-pallets"
                     )
                   }
                 >
@@ -304,6 +321,13 @@ export function InventoryActions({
               )
             })}
           </div>
+        ) : mode === "manage-pallets" ? (
+          <ManagePallets
+            options={options}
+            onBack={() => setMode(null)}
+            onSaved={onSaved}
+            onBusyChange={setBusy}
+          />
         ) : mode === "pallet" ? (
           <CreatePallet
             options={options}
