@@ -10,6 +10,9 @@ import {
   RefreshCw,
   Search,
   X,
+  MapPin,
+  Pencil,
+  Plus,
 } from "lucide-react"
 import {
   inventoryKinds,
@@ -18,6 +21,7 @@ import {
   type InventoryPage,
   type InventoryMinerDetail,
 } from "@/lib/miners/inventory-contracts"
+import type { ActionContext } from "@/lib/inventory-actions/contracts"
 import "./miner-workspace.css"
 import {
   LiveMinerOverview,
@@ -289,7 +293,16 @@ export function MinerInventorySearch({
               </thead>
               <tbody>
                 {page.items.map((miner) => (
-                  <tr key={miner.id}>
+                  <tr
+                    key={miner.id}
+                    className="atlas-miner-result-row"
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest("button"))
+                        return
+                      closeSearch()
+                      onSelect(miner.id)
+                    }}
+                  >
                     <td>
                       <button
                         className="atlas-serial-open"
@@ -371,10 +384,12 @@ export function MinerInventorySearch({
 }
 
 export function LiveMinerWorkspace({
+  onAction,
   selectedId,
   refreshKey,
 }: {
   selectedId: number | null
+  onAction: (context: ActionContext) => void
   refreshKey: string
 }) {
   const [detail, setDetail] = useState<InventoryMinerDetail | null>(null)
@@ -431,6 +446,27 @@ export function LiveMinerWorkspace({
           </p>
         </div>
         <div className="atlas-selected-miner-actions">
+          <button
+            className="atlas-text-button"
+            onClick={() => onAction({ mode: "move", minerId: selectedId })}
+          >
+            <MapPin size={14} />
+            Update location
+          </button>
+          <button
+            className="atlas-text-button"
+            onClick={() => onAction({ mode: "edit", minerId: selectedId })}
+          >
+            <Pencil size={14} />
+            Update miner
+          </button>
+          <button
+            className="atlas-text-button"
+            onClick={() => onAction({ mode: "create" })}
+          >
+            <Plus size={14} />
+            Create miner
+          </button>
           <button className="atlas-text-button" onClick={reload}>
             <RefreshCw size={14} />
             Refresh miner

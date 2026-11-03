@@ -273,7 +273,7 @@ export function MinerLogs() {
           aria-controls="atlas-miner-log-content"
           onClick={() => setOpen((value) => !value)}
         >
-          {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {open ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           {open ? "Hide" : "Show"}
         </button>
       </div>

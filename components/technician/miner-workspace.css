@@ -1044,8 +1044,9 @@
   gap: 28px;
   flex-wrap: wrap;
 }
-.atlas-miner-search-dialog {
-  width: min(1200px, calc(100vw - 32px));
+.atlas-dialog.atlas-miner-search-dialog {
+  width: min(1400px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   max-height: calc(100svh - 48px);
   overflow: auto;
 }
@@ -1086,7 +1087,7 @@
   color: var(--foreground);
 }
 .atlas-selected-miner-body {
-  padding: 0 24px 24px;
+  padding: 20px 24px 24px;
 }
 .atlas-selected-miner-empty {
   padding: 40px;
@@ -1106,7 +1107,7 @@
     gap: 14px;
   }
   .atlas-selected-miner-body {
-    padding: 0 16px 16px;
+    padding: 16px;
   }
 }
 
@@ -1169,4 +1170,20 @@
   .atlas-dashboard-search-row .atlas-miner-search-submit svg {
     display: none;
   }
+}
+
+.atlas-miner-result-row {
+  cursor: pointer;
+}
+.atlas-miner-search-dialog
+  .atlas-miner-result-row:is(:hover, :focus-within)
+  td {
+  background: color-mix(in oklch, var(--primary) 8%, var(--card));
+}
+.atlas-miner-search-dialog .atlas-miner-table {
+  width: 100%;
+}
+.atlas-miner-search-dialog .atlas-location-cell {
+  white-space: normal;
+  min-width: 180px;
 }

@@ -205,18 +205,6 @@ export function TechnicianDashboard({
               />
             </div>
           )}
-          {view === "miners" && (
-            <div className="atlas-miner-actions-toolbar">
-              <button
-                className="atlas-action-primary"
-                disabled={!selectedMinerId}
-                onClick={() => setActionContext({ minerId: selectedMinerId! })}
-              >
-                <Zap size={15} />
-                Miner actions
-              </button>
-            </div>
-          )}
           {view === "dashboard" && (
             <>
               <BitcoinStrip />
@@ -294,6 +282,7 @@ export function TechnicianDashboard({
             <LiveMinerWorkspace
               key={`${selectedMinerId ?? "none"}-${dashboard.loadedAt}`}
               selectedId={selectedMinerId}
+              onAction={setActionContext}
               refreshKey={dashboard.loadedAt}
             />
           )}
