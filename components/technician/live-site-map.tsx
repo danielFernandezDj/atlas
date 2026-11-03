@@ -848,16 +848,37 @@ function CanGrid({
                   {payload && (
                     <>
                       <Popover.Description>
-                        {payload.code ?? "Location not configured"}
+                        Building {map.building} · Can {map.number} · Row{" "}
+                        {payload.row} · Column {payload.column}
                       </Popover.Description>
                       <p className="atlas-port-status">
-                        {portStates[portDisplay(payload).state]}
+                        {payload.port?.active === false
+                          ? "Disabled port"
+                          : portStates[portDisplay(payload).state]}
                       </p>
-                      <p>
-                        {payload.port
-                          ? `${payload.port.switch} · Port ${payload.port.number}`
-                          : "No network port configured"}
-                      </p>
+                      <details className="atlas-port-network-details">
+                        <summary>Network details</summary>
+                        <dl>
+                          <div>
+                            <dt>Location code</dt>
+                            <dd>{payload.code ?? "Not configured"}</dd>
+                          </div>
+                          <div>
+                            <dt>Network switch</dt>
+                            <dd>{payload.port?.switch ?? "Not configured"}</dd>
+                          </div>
+                          <div>
+                            <dt>Switch socket</dt>
+                            <dd>{payload.port?.number ?? "Not configured"}</dd>
+                          </div>
+                        </dl>
+                        <p>
+                          The map uses row/column coordinates starting at 0.
+                          Switch socket numbers are separate inventory labels.
+                          In location codes, B = building, C = can, R = row and
+                          S = column.
+                        </p>
+                      </details>
                       <div className="atlas-port-miners">
                         {payload.occupant && (
                           <button onClick={() => onMiner(payload.occupant!.id)}>
@@ -892,51 +913,102 @@ function CanGrid({
                         )}
                       </div>
                       <h3>Actions</h3>
-                      {!payload.occupant ? (
-                        <Popover.Close
-                          className="atlas-port-action"
-                          disabled={
-                            !payload.locationId ||
-                            !payload.active ||
-                            payload.conflict
-                          }
-                          onClick={() =>
-                            onAction({
-                              mode: "move",
-                              locationId: payload.locationId!,
-                              ...(payload.reservation
-                                ? { minerId: payload.reservation.id }
-                                : {}),
-                            })
-                          }
-                        >
-                          Add a miner here
-                        </Popover.Close>
-                      ) : (
+                      {payload.locationId &&
+                      payload.port &&
+                      !payload.conflict ? (
                         <>
+                          {payload.active && (
+                            <Popover.Close
+                              className="atlas-port-action"
+                              onClick={() =>
+                                onAction({
+                                  portAction:
+                                    payload.occupant || payload.reservation
+                                      ? "replace"
+                                      : "add",
+                                  locationId: payload.locationId!,
+                                })
+                              }
+                            >
+                              {payload.occupant || payload.reservation
+                                ? "Replace miner"
+                                : "Add a miner here"}
+                            </Popover.Close>
+                          )}
+                          {payload.occupant && (
+                            <Popover.Close
+                              className="atlas-port-action"
+                              onClick={() =>
+                                onAction({
+                                  portAction: "pull",
+                                  locationId: payload.locationId!,
+                                })
+                              }
+                            >
+                              Pull miner
+                            </Popover.Close>
+                          )}
+                          {!payload.occupant && payload.reservation && (
+                            <>
+                              {payload.active && (
+                                <Popover.Close
+                                  className="atlas-port-action"
+                                  onClick={() =>
+                                    onAction({
+                                      portAction: "return",
+                                      locationId: payload.locationId!,
+                                    })
+                                  }
+                                >
+                                  Return reserved miner
+                                </Popover.Close>
+                              )}
+                              <Popover.Close
+                                className="atlas-port-action"
+                                onClick={() =>
+                                  onAction({
+                                    portAction: "release",
+                                    locationId: payload.locationId!,
+                                  })
+                                }
+                              >
+                                Release reservation
+                              </Popover.Close>
+                            </>
+                          )}
                           <Popover.Close
                             className="atlas-port-action"
                             onClick={() =>
                               onAction({
-                                mode: "move",
-                                minerId: payload.occupant!.id,
+                                portAction:
+                                  payload.port!.active === false
+                                    ? "enable"
+                                    : "disable",
+                                locationId: payload.locationId!,
                               })
                             }
                           >
-                            Update location
+                            {payload.port.active === false
+                              ? "Re-enable port"
+                              : "Disable port"}
                           </Popover.Close>
-                          <Popover.Close
-                            className="atlas-port-action"
-                            onClick={() =>
-                              onAction({
-                                mode: "edit",
-                                minerId: payload.occupant!.id,
-                              })
-                            }
-                          >
-                            Update miner
-                          </Popover.Close>
+                          {!payload.active && payload.port.active !== false && (
+                            <p className="atlas-port-footnote">
+                              This location or its hierarchy is inactive.
+                              Assignments are unavailable until it is restored.
+                            </p>
+                          )}
                         </>
+                      ) : payload.conflict ? (
+                        <p className="atlas-port-footnote">
+                          Conflicting assignments need to be reconciled before
+                          changing this port.
+                        </p>
+                      ) : (
+                        <p className="atlas-port-footnote">
+                          Configure a network port for this location before
+                          using port actions.
+                        </p>
                       )}
                       {!payload.locationId && (
                         <p className="atlas-port-footnote">

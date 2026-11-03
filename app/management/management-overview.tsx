@@ -1,4 +1,4 @@
-import { Server } from "lucide-react"
+import { Network } from "lucide-react"
 import styles from "./management.module.css"
 
 // Unavailable data is intentionally not represented as zero or as a demo snapshot.
@@ -8,7 +8,7 @@ export function ManagementOverview() {
       <header className={styles.header}>
         <div className={styles.brand}>
           <span className={styles.logo}>
-            <Server size={23} />
+            <Network size={23} />
           </span>
           <div>
             <strong>Atlas</strong>

@@ -240,6 +240,7 @@ export async function readMinerInventoryDetail(
         select: {
           id: true,
           kind: true,
+          details: true,
           source: true,
           notes: true,
           occurred_at: true,
@@ -358,27 +359,49 @@ export async function readMinerInventoryDetail(
       notes: movement.notes,
       occurredAt: movement.occurred_at.toISOString(),
     })),
-    events: miner.history.map((event) => ({
-      id: event.id,
-      kind:
-        event.kind === "COMPONENT_UPDATED" &&
-        !event.skeleton_id &&
-        !event.control_board_id &&
-        !event.hash_board_id
-          ? "miner details updated"
-          : event.kind.replaceAll("_", " ").toLowerCase(),
-      component:
-        event.skeleton_id !== null
-          ? `Skeleton #${event.skeleton_id}`
-          : event.control_board_id !== null
-            ? `Control board #${event.control_board_id}`
-            : event.hash_board_id !== null
-              ? `Hashboard #${event.hash_board_id}${event.position ? ` · ${event.position.replace("SLOT_", "Position ")}` : ""}`
-              : null,
-      by: who(event.user, event.source),
-      notes: event.notes,
-      occurredAt: event.occurred_at.toISOString(),
-    })),
+    events: miner.history.map((event) => {
+      const details = event.details as {
+        scope?: string
+        operation?: string
+        gridCoordinate?: string
+      } | null
+      const portLabel =
+        details?.scope === "port_assignment"
+          ? (
+              {
+                disable: "Port disabled",
+                release: "Reservation released",
+                replace: "Miner replaced",
+                pull: "Miner pulled",
+                return: "Reserved miner returned",
+                add: "Miner added",
+                enable: "Port re-enabled",
+              } as Record<string, string>
+            )[details.operation ?? ""]
+          : null
+      return {
+        id: event.id,
+        kind: portLabel
+          ? `${portLabel}${details?.gridCoordinate ? ` · ${details.gridCoordinate}` : ""}`
+          : event.kind === "COMPONENT_UPDATED" &&
+              !event.skeleton_id &&
+              !event.control_board_id &&
+              !event.hash_board_id
+            ? "miner details updated"
+            : event.kind.replaceAll("_", " ").toLowerCase(),
+        component:
+          event.skeleton_id !== null
+            ? `Skeleton #${event.skeleton_id}`
+            : event.control_board_id !== null
+              ? `Control board #${event.control_board_id}`
+              : event.hash_board_id !== null
+                ? `Hashboard #${event.hash_board_id}${event.position ? ` · ${event.position.replace("SLOT_", "Position ")}` : ""}`
+                : null,
+        by: who(event.user, event.source),
+        notes: event.notes,
+        occurredAt: event.occurred_at.toISOString(),
+      }
+    }),
     movementCount: miner._count.movements,
     eventCount: miner._count.history,
   }

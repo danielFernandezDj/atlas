@@ -856,3 +856,29 @@
 .atlas-port-cell[data-filter-muted="true"] .atlas-port-value {
   opacity: 0.35;
 }
+
+.atlas-port-network-details {
+  margin: 12px 0;
+  font-size: 11px;
+}
+.atlas-port-network-details summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+.atlas-port-network-details dl {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.atlas-port-network-details dt {
+  color: var(--muted-foreground);
+}
+.atlas-port-network-details dd {
+  overflow-wrap: anywhere;
+}
+.atlas-port-network-details p {
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 10px;
+  color: var(--muted-foreground);
+}

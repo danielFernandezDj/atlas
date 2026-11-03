@@ -28,6 +28,7 @@ export type MapCell = {
   active: boolean
   port: {
     id: number
+    active?: boolean
     number: string
     switch: string
     observedMac: string | null
@@ -92,13 +93,13 @@ export function cellDescription(cell: MapCell) {
   return [
     `Row ${cell.row} · Column ${cell.column}`,
     cell.port
-      ? `${cell.port.switch} · Port ${cell.port.number}`
+      ? `Network switch ${cell.port.switch} · Socket ${cell.port.number} (separate from grid coordinates)`
       : "No network port configured",
     cell.occupant
       ? `Miner #${cell.occupant.identity} · ${cell.occupant.serial}`
       : "No miner physically present",
     cell.occupant ? `Recorded IP: ${cell.occupant.ip ?? "Not recorded"}` : null,
-    portStates[state.state],
+    cell.port?.active === false ? "Disabled port" : portStates[state.state],
     cell.reservation
       ? `Reserved: Miner #${cell.reservation.identity} · ${cell.reservation.serial} · Recorded IP: ${cell.reservation.ip ?? "Not recorded"}`
       : null,

@@ -682,3 +682,64 @@
   color: var(--atlas-red, #e65e65);
   font-weight: 600;
 }
+.atlas-port-action-fields {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  margin: 18px 0;
+}
+.atlas-port-action-fields h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.atlas-port-reason-label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.atlas-port-reason-label select {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+}
+.atlas-port-keep-reservation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+.atlas-port-keep-reservation input {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+}
+.atlas-port-workflow .atlas-action-miner {
+  overflow-wrap: anywhere;
+}
+.atlas-port-workflow .atlas-directory-filters {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+.atlas-port-workflow .atlas-directory-search {
+  grid-column: 1/-1;
+}
+.atlas-port-danger {
+  background: var(--destructive);
+}
+
+.atlas-port-last-change {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.atlas-port-last-change h3 {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.atlas-port-last-change p {
+  overflow-wrap: anywhere;
+  margin-top: 5px;
+}

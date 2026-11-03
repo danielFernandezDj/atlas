@@ -116,6 +116,8 @@ export const actionSchema = z.discriminatedUnion("kind", [
 ])
 export type InventoryCommand = z.infer<typeof actionSchema>
 export type ActionContext = {
+  portAction?:
+    "add" | "replace" | "pull" | "disable" | "enable" | "release" | "return"
   lockedMiner?: boolean
   mode?: "move" | "edit" | "create" | "insert"
   minerId?: number

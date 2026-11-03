@@ -8,7 +8,7 @@ import {
   Cpu,
   LayoutDashboard,
   Map,
-  Server,
+  Network,
   Zap,
 } from "lucide-react"
 import { Select } from "@base-ui/react/select"
@@ -24,6 +24,7 @@ import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
 import { WeatherOutlook, WeatherSourceLink } from "./technician/weather-outlook"
 import { SiteClock } from "./technician/site-clock"
+import { PortActions } from "./technician/port-actions"
 import { InventoryActions } from "./technician/inventory-actions"
 import { AccountMenu } from "./technician/account-menu"
 import type { ActionContext } from "@/lib/inventory-actions/contracts"
@@ -65,7 +66,7 @@ export function TechnicianDashboard({
     <div className="atlas-workspace">
       <aside className="atlas-rail" aria-label="Main navigation">
         <div className="atlas-logo" title="Atlas">
-          <Server size={23} />
+          <Network size={23} />
         </div>
         <nav>
           {views.map(({ id, label, Icon }) => (
@@ -288,19 +289,29 @@ export function TechnicianDashboard({
           )}
         </main>
       </div>
-      {actionContext && (
-        <InventoryActions
+      {actionContext?.portAction && actionContext.locationId ? (
+        <PortActions
           key={JSON.stringify(actionContext)}
-          context={actionContext}
-          siteId={selectedSite?.id ?? null}
+          operation={actionContext.portAction}
+          locationId={actionContext.locationId}
           onClose={() => setActionContext(null)}
           onSaved={() => startTransition(() => router.refresh())}
-          onOpenMiner={(id) => {
-            setActionContext(null)
-            setSelectedMinerId(id)
-            setView("miners")
-          }}
         />
+      ) : (
+        actionContext && (
+          <InventoryActions
+            key={JSON.stringify(actionContext)}
+            context={actionContext}
+            siteId={selectedSite?.id ?? null}
+            onClose={() => setActionContext(null)}
+            onSaved={() => startTransition(() => router.refresh())}
+            onOpenMiner={(id) => {
+              setActionContext(null)
+              setSelectedMinerId(id)
+              setView("miners")
+            }}
+          />
+        )
       )}
     </div>
   )

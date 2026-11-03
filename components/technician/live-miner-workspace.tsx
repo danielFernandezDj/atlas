@@ -216,6 +216,7 @@ export function MinerInventorySearch({
         aria-labelledby="miner-search-title"
         onCancel={(event) => {
           event.preventDefault()
+          event.stopPropagation()
           closeSearch()
         }}
       >
