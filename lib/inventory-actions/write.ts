@@ -103,16 +103,18 @@ export async function performInventoryAction(
             minerId = 0
           }
           if (input.kind !== "move") {
-            const companies = await tx.companies.count({
-              where: {
-                id: { in: [...new Set([input.ownerId, input.managerId])] },
-              },
-            })
-            if (companies !== new Set([input.ownerId, input.managerId]).size)
-              throw new ActionError(
-                400,
-                "Choose valid owner and management companies."
-              )
+            if (input.kind === "create") {
+              const companies = await tx.companies.count({
+                where: {
+                  id: { in: [...new Set([input.ownerId, input.managerId])] },
+                },
+              })
+              if (companies !== new Set([input.ownerId, input.managerId]).size)
+                throw new ActionError(
+                  400,
+                  "Choose valid owner and management companies."
+                )
+            }
             if (
               input.modelId !== null &&
               !(await tx.miner_model.findUnique({
@@ -255,8 +257,6 @@ export async function performInventoryAction(
           } else if (input.kind === "edit") {
             const data = {
               asset_tag: input.assetTag || null,
-              owner_company_id: input.ownerId,
-              management_company_id: input.managerId,
               model_id: input.modelId,
             }
             if (

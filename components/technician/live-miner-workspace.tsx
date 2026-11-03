@@ -12,7 +12,6 @@ import {
   X,
   MapPin,
   Pencil,
-  Plus,
 } from "lucide-react"
 import {
   inventoryKinds,
@@ -448,24 +447,21 @@ export function LiveMinerWorkspace({
         <div className="atlas-selected-miner-actions">
           <button
             className="atlas-text-button"
-            onClick={() => onAction({ mode: "move", minerId: selectedId })}
+            onClick={() =>
+              onAction({ mode: "move", minerId: selectedId, lockedMiner: true })
+            }
           >
             <MapPin size={14} />
             Update location
           </button>
           <button
             className="atlas-text-button"
-            onClick={() => onAction({ mode: "edit", minerId: selectedId })}
+            onClick={() =>
+              onAction({ mode: "edit", minerId: selectedId, lockedMiner: true })
+            }
           >
             <Pencil size={14} />
             Update miner
-          </button>
-          <button
-            className="atlas-text-button"
-            onClick={() => onAction({ mode: "create" })}
-          >
-            <Plus size={14} />
-            Create miner
           </button>
           <button className="atlas-text-button" onClick={reload}>
             <RefreshCw size={14} />

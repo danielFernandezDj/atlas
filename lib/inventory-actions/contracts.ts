@@ -37,13 +37,15 @@ export const actionSchema = z.discriminatedUnion("kind", [
       kind: z.literal("edit"),
       minerId: id,
       version: z.number().int().nonnegative(),
-      ...metadata,
+      modelId: metadata.modelId,
+      assetTag: metadata.assetTag,
       ...common,
     })
     .strict(),
 ])
 export type InventoryCommand = z.infer<typeof actionSchema>
 export type ActionContext = {
+  lockedMiner?: boolean
   mode?: "move" | "edit" | "create"
   minerId?: number
   locationId?: number
@@ -70,7 +72,15 @@ export type ActionOptions = {
   canWrite: boolean
   companies: { id: number; name: string }[]
   models: { id: number; label: string }[]
-  sites: { id: number; name: string }[]
+  sites: {
+    id: number
+    name: string
+    buildings: {
+      id: number
+      building_number: number
+      cans: { id: number; can_number: string }[]
+    }[]
+  }[]
 }
 export class ActionError extends Error {
   constructor(

@@ -146,3 +146,90 @@ test("write endpoint checks the authenticated actor, origin, body type and schem
   assert.match(activity, /user_id: actor.id/)
   assert.doesNotMatch(activity, /export async function (POST|PUT|DELETE|PATCH)/)
 })
+
+test("editing a miner cannot change its owner or management company", () => {
+  const edit = {
+    kind: "edit",
+    minerId: 1,
+    version: 0,
+    modelId: null,
+    assetTag: "ASSET",
+    notes: "Correct asset tag",
+    submissionKey: move.submissionKey,
+  }
+  assert.equal(actionSchema.safeParse(edit).success, true)
+  assert.equal(actionSchema.safeParse({ ...edit, ownerId: 2 }).success, false)
+  assert.equal(actionSchema.safeParse({ ...edit, managerId: 2 }).success, false)
+})
+test("location choices are filtered by site, building and can with bounded pagination", async () => {
+  const { readActionLocations } = await import(readerUrl)
+  const calls = []
+  const db = {
+    locations: {
+      count: async (query) => {
+        calls.push(query)
+        return 1
+      },
+      findMany: async (query) => {
+        calls.push(query)
+        return []
+      },
+    },
+  }
+  await readActionLocations(
+    db,
+    new URLSearchParams({
+      site: "1",
+      building: "2",
+      can: "3",
+      kind: "DEPLOYMENT_SLOT",
+      page: "2",
+    })
+  )
+  for (const call of calls)
+    assert.deepEqual(call.where, {
+      site_id: 1,
+      building_id: 2,
+      can_id: 3,
+      kind: "DEPLOYMENT_SLOT",
+    })
+  assert.equal(calls[1].skip, 20)
+  assert.equal(calls[1].take, 20)
+  for (const input of [{ building: "-1" }, { can: "not-an-id" }])
+    await assert.rejects(
+      readActionLocations(db, new URLSearchParams(input)),
+      /Invalid location filters/
+    )
+})
+
+test("port coordinates resolve an exact row and column within a selected can", async () => {
+  const { readActionLocations } = await import(readerUrl)
+  let where
+  const db = {
+    locations: {
+      count: async (query) => {
+        where = query.where
+        return 0
+      },
+      findMany: async () => [],
+    },
+  }
+  await readActionLocations(
+    db,
+    new URLSearchParams({
+      site: "1",
+      building: "2",
+      can: "3",
+      kind: "DEPLOYMENT_SLOT",
+      search: "0/16",
+    })
+  )
+  assert.deepEqual(where, {
+    site_id: 1,
+    building_id: 2,
+    can_id: 3,
+    kind: "DEPLOYMENT_SLOT",
+    row_index: 0,
+    slot_index: 16,
+  })
+})

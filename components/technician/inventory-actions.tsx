@@ -7,7 +7,12 @@ import type {
   ActionLocation,
   ActionOptions,
 } from "@/lib/inventory-actions/contracts"
-import type { InventoryPage } from "@/lib/miners/inventory-contracts"
+import { LiveMinerSettings } from "./live-miner-panels"
+import type { InventoryMinerDetail } from "@/lib/miners/inventory-contracts"
+import {
+  inventoryKindLabels,
+  type InventoryPage,
+} from "@/lib/miners/inventory-contracts"
 import "./inventory-actions.css"
 async function get<T>(
   params: Record<string, string>,
@@ -45,6 +50,7 @@ export function InventoryActions({
       context.minerId ?? null
     ),
     [miner, setMiner] = useState<ActionMiner | null>(null)
+  const [detail, setDetail] = useState<InventoryMinerDetail | null>(null)
   const [serial, setSerial] = useState(""),
     [serialReady, setSerialReady] = useState(false)
   const [destination, setDestination] = useState<number | null>(null)
@@ -78,7 +84,19 @@ export function InventoryActions({
     if (!minerId) return
     const c = new AbortController()
     get<ActionMiner>({ resource: "miner", id: String(minerId) }, c.signal)
-      .then(setMiner)
+      .then((value) => {
+        if (!c.signal.aborted) setMiner(value)
+      })
+      .catch((e) => {
+        if (!c.signal.aborted) setError(e.message)
+      })
+    fetch(`/api/miners/${minerId}`, { signal: c.signal, cache: "no-store" })
+      .then(async (response) => {
+        const body = await response.json()
+        if (!response.ok)
+          throw new Error(body.message ?? "Miner details unavailable.")
+        if (!c.signal.aborted) setDetail(body)
+      })
       .catch((e) => {
         if (!c.signal.aborted) setError(e.message)
       })
@@ -135,7 +153,8 @@ export function InventoryActions({
               kind: mode,
               minerId: miner!.id,
               version: miner!.version,
-              ...metadata,
+              modelId: metadata.modelId,
+              assetTag: metadata.assetTag,
               notes: String(form.get("notes") ?? "").trim(),
             }
     const fingerprint = JSON.stringify(payload)
@@ -219,6 +238,7 @@ export function InventoryActions({
                 onClick={() => {
                   setError("")
                   setMiner(null)
+                  setDetail(null)
                   setRetry((v) => v + 1)
                 }}
               >
@@ -263,7 +283,7 @@ export function InventoryActions({
               [
                 "edit",
                 "Update miner",
-                "Edit model, ownership, management company or asset tag.",
+                "Review components and settings, or update the model and asset tag.",
                 SquarePen,
               ],
               [
@@ -291,22 +311,25 @@ export function InventoryActions({
           </div>
         ) : (
           <>
-            <button
-              className="atlas-text-button atlas-action-back"
-              disabled={busy}
-              onClick={() => {
-                setMode(null)
-                setError("")
-              }}
-            >
-              ← All actions
-            </button>
+            {!context.lockedMiner && (
+              <button
+                className="atlas-text-button atlas-action-back"
+                disabled={busy}
+                onClick={() => {
+                  setMode(null)
+                  setError("")
+                }}
+              >
+                ← All actions
+              </button>
+            )}
             {mode !== "create" &&
               (!minerId ? (
                 <MinerPicker
                   onSelect={(id) => {
                     setDestination(null)
                     setMiner(null)
+                    setDetail(null)
                     setMinerId(id)
                     setError("")
                   }}
@@ -318,17 +341,32 @@ export function InventoryActions({
                   <strong>
                     Miner #{miner.identity} · {miner.serial}
                   </strong>
-                  <span>{miner.location}</span>
-                  <button
-                    className="atlas-text-button"
-                    disabled={busy}
-                    onClick={() => {
-                      setMinerId(null)
-                      setMiner(null)
-                    }}
-                  >
-                    Choose another miner
-                  </button>
+                  <span>Current location · {miner.location}</span>
+                  {detail && (
+                    <div className="atlas-action-company-info">
+                      <span>Owner · {detail.owner}</span>
+                      <span>
+                        Location kind ·{" "}
+                        {detail.location
+                          ? inventoryKindLabels[detail.location.kind]
+                          : "Not assigned"}
+                      </span>
+                      <span>Management · {detail.manager}</span>
+                    </div>
+                  )}
+                  {!context.lockedMiner && (
+                    <button
+                      className="atlas-text-button"
+                      disabled={busy}
+                      onClick={() => {
+                        setMinerId(null)
+                        setMiner(null)
+                        setDetail(null)
+                      }}
+                    >
+                      Choose another miner
+                    </button>
+                  )}
                 </div>
               ))}
             {mode === "create" && !serialReady ? (
@@ -378,40 +416,37 @@ export function InventoryActions({
                         </button>
                       </div>
                     )}
+                    {mode === "edit" && detail && (
+                      <MinerComponentDetails miner={detail} />
+                    )}
                     {mode !== "move" && (
                       <div className="atlas-action-fields">
-                        <label>
-                          Owner company
-                          <select
-                            name="ownerId"
-                            required
-                            defaultValue={mode === "edit" ? miner!.ownerId : ""}
-                          >
-                            <option value="">Choose owner</option>
-                            {options.companies.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label>
-                          Management company
-                          <select
-                            name="managerId"
-                            required
-                            defaultValue={
-                              mode === "edit" ? miner!.managerId : ""
-                            }
-                          >
-                            <option value="">Choose manager</option>
-                            {options.companies.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
+                        {mode === "create" && (
+                          <>
+                            <label>
+                              Owner company
+                              <select name="ownerId" required defaultValue="">
+                                <option value="">Choose owner</option>
+                                {options.companies.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              Management company
+                              <select name="managerId" required defaultValue="">
+                                <option value="">Choose manager</option>
+                                {options.companies.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </>
+                        )}
                         <label>
                           Miner model
                           <select
@@ -447,6 +482,12 @@ export function InventoryActions({
                         siteId={siteId}
                         onSelect={setDestination}
                       />
+                    )}
+                    {mode === "edit" && (
+                      <section className="atlas-action-vnish">
+                        <h3>VNish settings</h3>
+                        <LiveMinerSettings />
+                      </section>
                     )}
                     <label>
                       Reason / notes
@@ -484,6 +525,9 @@ export function InventoryActions({
                       </button>
                     </div>
                   </fieldset>
+                  {mode === "move" && detail && (
+                    <LocationHistory miner={detail} />
+                  )}
                 </form>
               )
             )}
@@ -600,6 +644,8 @@ function LocationPicker({
   const [selected, setSelected] = useState<ActionLocation | null>(null),
     [site, setSite] = useState(siteId ? String(siteId) : ""),
     [kind, setKind] = useState("DEPLOYMENT_SLOT"),
+    [building, setBuilding] = useState(""),
+    [can, setCan] = useState(""),
     [draft, setDraft] = useState(""),
     [query, setQuery] = useState(""),
     [page, setPage] = useState(1),
@@ -631,7 +677,15 @@ function LocationPicker({
     if (selected) return
     const c = new AbortController()
     get<{ items: ActionLocation[]; total: number }>(
-      { resource: "locations", site, kind, search: query, page: String(page) },
+      {
+        resource: "locations",
+        site,
+        kind,
+        building,
+        can,
+        search: query,
+        page: String(page),
+      },
       c.signal
     )
       .then((b) => {
@@ -641,7 +695,7 @@ function LocationPicker({
         if (!c.signal.aborted) setError(e.message)
       })
     return () => c.abort()
-  }, [selected, site, kind, query, page, searchRevision])
+  }, [selected, site, kind, building, can, query, page, searchRevision])
   function choose(l: ActionLocation) {
     setSelected(l)
     onSelect(l.id)
@@ -676,6 +730,8 @@ function LocationPicker({
                 value={site}
                 onChange={(e) => {
                   setSite(e.target.value)
+                  setBuilding("")
+                  setCan("")
                   setPage(1)
                   setData(null)
                 }}
@@ -694,6 +750,8 @@ function LocationPicker({
                 value={kind}
                 onChange={(e) => {
                   setKind(e.target.value)
+                  setBuilding("")
+                  setCan("")
                   setPage(1)
                   setData(null)
                 }}
@@ -706,9 +764,59 @@ function LocationPicker({
               </select>
             </label>
           </div>
+          {kind === "DEPLOYMENT_SLOT" && (
+            <div className="atlas-action-fields">
+              <label>
+                Building
+                <select
+                  value={building}
+                  disabled={!site}
+                  onChange={(e) => {
+                    setBuilding(e.target.value)
+                    setCan("")
+                    setPage(1)
+                    setData(null)
+                  }}
+                >
+                  <option value="">All buildings</option>
+                  {options.sites
+                    .find((s) => s.id === Number(site))
+                    ?.buildings.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        Building {b.building_number}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label>
+                Can
+                <select
+                  value={can}
+                  disabled={!building}
+                  onChange={(e) => {
+                    setCan(e.target.value)
+                    setPage(1)
+                    setData(null)
+                  }}
+                >
+                  <option value="">All cans</option>
+                  {options.sites
+                    .find((s) => s.id === Number(site))
+                    ?.buildings.find((b) => b.id === Number(building))
+                    ?.cans.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        Can {c.can_number}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
+          )}
           <div className="atlas-action-location-search">
             <label>
-              Location name or code
+              {kind === "DEPLOYMENT_SLOT"
+                ? "Port index (row/column) or location code"
+                : "Location name or code"}
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -783,6 +891,65 @@ function LocationPicker({
             </>
           )}
         </>
+      )}
+    </section>
+  )
+}
+
+function MinerComponentDetails({ miner }: { miner: InventoryMinerDetail }) {
+  return (
+    <section className="atlas-action-components">
+      <h3>Component information</h3>
+      <dl>
+        {[
+          ["Skeleton serial", miner.skeleton?.serial ?? miner.serial],
+          ["Control board serial", miner.controlBoard?.serial],
+          ["Control board MAC", miner.controlBoard?.mac],
+          ...[1, 2, 3].map((n) => {
+            const b = miner.boards.find((b) => b.position === `SLOT_${n}`)
+            return [
+              `Hashboard ${n} serial`,
+              b?.serial ??
+                (b ? `ID #${b.id} · Serial not recorded` : "Not assigned"),
+            ]
+          }),
+        ].map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value ?? "Not recorded"}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+function LocationHistory({ miner }: { miner: InventoryMinerDetail }) {
+  return (
+    <section className="atlas-action-location-history">
+      <h3>Location history · {miner.movementCount} total</h3>
+      <p className="atlas-muted">Latest 20 movements · Central Time</p>
+      {miner.movements.length ? (
+        <ol>
+          {miner.movements.map((m) => (
+            <li key={m.id}>
+              <strong>
+                {m.from} → {m.to}
+              </strong>
+              <span>
+                {new Date(m.occurredAt).toLocaleString("en-US", {
+                  timeZone: "America/Chicago",
+                })}{" "}
+                · {m.by}
+              </span>
+              <p>
+                {m.reason}
+                {m.notes ? ` · ${m.notes}` : ""}
+              </p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p>No movements recorded.</p>
       )}
     </section>
   )

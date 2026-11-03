@@ -160,8 +160,6 @@ test(
             kind: "edit",
             minerId: miner.id,
             version: miner.version,
-            ownerId: company.id,
-            managerId: company.id,
             modelId: null,
             assetTag: "ROLLBACK-CHECK",
             notes: "Rolled-back metadata validation",

@@ -58,7 +58,23 @@ export async function readActionOptions(db: PrismaClient, role: string) {
     db.sites.findMany({
       where: { is_active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        buildings: {
+          where: { is_active: true },
+          orderBy: { building_number: "asc" },
+          select: {
+            id: true,
+            building_number: true,
+            cans: {
+              where: { is_active: true },
+              orderBy: { can_number: "asc" },
+              select: { id: true, can_number: true },
+            },
+          },
+        },
+      },
     }),
   ])
   return {
@@ -110,27 +126,40 @@ export async function readActionLocations(
   const page = Number(p.get("page") ?? 1),
     search = (p.get("search") ?? "").trim(),
     site = p.get("site"),
-    kind = p.get("kind")
+    kind = p.get("kind"),
+    building = p.get("building"),
+    can = p.get("can")
   if (
     !Number.isInteger(page) ||
     page < 1 ||
     page > 10000 ||
     search.length > 200 ||
+    [building, can].some(
+      (value) => value !== null && value !== "" && !/^[1-9]\d{0,8}$/.test(value)
+    ) ||
     (site && !/^[1-9]\d{0,8}$/.test(site)) ||
     (kind && !["DEPLOYMENT_SLOT", "REPAIR", "STAGING", "PALLET"].includes(kind))
   )
     throw new ActionError(400, "Invalid location filters.")
+  const coordinates = /^(\d{1,4})\s*\/\s*(\d{1,4})$/.exec(search)
   const where = {
     ...(site ? { site_id: Number(site) } : {}),
+    ...(building ? { building_id: Number(building) } : {}),
+    ...(can ? { can_id: Number(can) } : {}),
     ...(kind ? { kind: kind as "DEPLOYMENT_SLOT" } : {}),
-    ...(search
+    ...(coordinates
       ? {
-          OR: [
-            { code: { contains: search, mode: "insensitive" as const } },
-            { name: { contains: search, mode: "insensitive" as const } },
-          ],
+          row_index: Number(coordinates[1]),
+          slot_index: Number(coordinates[2]),
         }
-      : {}),
+      : search
+        ? {
+            OR: [
+              { code: { contains: search, mode: "insensitive" as const } },
+              { name: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
   }
   const [total, locations] = await Promise.all([
     db.locations.count({ where }),

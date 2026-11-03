@@ -1,4 +1,4 @@
-.atlas-inventory-action-dialog {
+.atlas-dialog.atlas-inventory-action-dialog {
   width: min(760px, calc(100vw - 24px));
   max-height: calc(100svh - 32px);
   margin: auto;
@@ -339,5 +339,64 @@
   }
   .atlas-action-menu > button {
     padding: 14px;
+  }
+}
+
+.atlas-action-company-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.atlas-action-components {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.atlas-action-components h3,
+.atlas-action-vnish h3,
+.atlas-action-location-history h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.atlas-action-components dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.atlas-action-components dt {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.atlas-action-components dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.atlas-action-location-history {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.atlas-action-location-history ol {
+  display: grid;
+  gap: 12px;
+  max-height: 240px;
+  overflow: auto;
+  margin-top: 12px;
+}
+.atlas-action-location-history li {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-action-location-history li span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin: 5px 0;
+}
+@media (max-width: 600px) {
+  .atlas-action-components dl {
+    grid-template-columns: 1fr;
   }
 }
