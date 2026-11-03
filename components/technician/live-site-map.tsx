@@ -8,12 +8,14 @@ import {
   type FocusEvent,
   type MouseEvent,
 } from "react"
-import { ArrowUpRight, BookOpen, RefreshCw, X } from "lucide-react"
+import { ArrowUpRight, BookOpen, LocateFixed, RefreshCw, X } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Popover } from "@base-ui/react/popover"
 import type { DashboardData } from "@/lib/dashboard/contracts"
 import {
   cellDescription,
+  matchesLastPort,
+  type LastMapPort,
   portDisplay,
   portStates,
   type BuildingMapSummary,
@@ -24,22 +26,48 @@ import "./live-site-map.css"
 export function LiveSiteMap({
   siteId,
   buildings,
+  lastPort,
+  onPortSelect,
   refreshKey,
   onMiner,
 }: {
   siteId: number
   buildings: DashboardData["buildings"]
+  lastPort: LastMapPort | null
+  onPortSelect: (port: LastMapPort) => void
   refreshKey: string
   onMiner: (id: number) => void
 }) {
   const [buildingId, setBuildingId] = useState<number | null>(
-    buildings[0]?.id ?? null
+    buildings.find(
+      (b) =>
+        b.id === lastPort?.buildingId &&
+        b.cans.some((c) => c.id === lastPort.canId)
+    )?.id ??
+      buildings[0]?.id ??
+      null
   )
   const building = buildings.find((b) => b.id === buildingId)
   const cans = [...(building?.cans ?? [])].sort((a, b) =>
     a.number.localeCompare(b.number, undefined, { numeric: true })
   )
-  const [canId, setCanId] = useState<number | null>(cans[0]?.id ?? null)
+  const [canId, setCanId] = useState<number | null>(
+    cans.find((c) => c.id === lastPort?.canId)?.id ?? cans[0]?.id ?? null
+  )
+  const [jumpToLast, setJumpToLast] = useState(0)
+  const lastPortAvailable =
+    !!lastPort &&
+    buildings.some(
+      (b) =>
+        b.id === lastPort.buildingId &&
+        b.cans.some((c) => c.id === lastPort.canId)
+    )
+  function returnToLastPort() {
+    if (!lastPort || !lastPortAvailable) return
+    setBuildingId(lastPort.buildingId)
+    setCanId(lastPort.canId)
+    setJumpToLast((v) => v + 1)
+  }
   const [refresh, setRefresh] = useState(0)
   const mapKey = `${siteId}-${canId}-${refreshKey}-${refresh}`
   const [mapResult, setMapResult] = useState<{
@@ -157,6 +185,23 @@ export function LiveSiteMap({
           key={mapKey}
           map={currentMap?.map ?? null}
           error={currentMap?.error ?? ""}
+          lastPort={lastPort}
+          jumpToLast={jumpToLast}
+          lastPortAvailable={lastPortAvailable}
+          onReturnToLast={returnToLastPort}
+          onPortSelect={(cell) => {
+            if (!building || canId === null) return
+            onPortSelect({
+              siteId,
+              buildingId: building.id,
+              buildingNumber: building.number,
+              canId,
+              canNumber: cans.find((c) => c.id === canId)!.number,
+              row: cell.row,
+              column: cell.column,
+              locationId: cell.locationId,
+            })
+          }}
           onMiner={onMiner}
           onRefresh={() => setRefresh((v) => v + 1)}
         />
@@ -286,11 +331,21 @@ function BuildingInventory({
 function CanGrid({
   map,
   error,
+  lastPort,
+  jumpToLast,
+  lastPortAvailable,
+  onReturnToLast,
+  onPortSelect,
   onMiner,
   onRefresh,
 }: {
   map: LiveCanMap | null
   error: string
+  lastPort: LastMapPort | null
+  jumpToLast: number
+  lastPortAvailable: boolean
+  onReturnToLast: () => void
+  onPortSelect: (cell: MapCell) => void
   onMiner: (id: number) => void
   onRefresh: () => void
 }) {
@@ -325,6 +380,26 @@ function CanGrid({
       ),
     [map?.cells.length]
   )
+  const restoredJump = useRef<number | null>(null)
+  useEffect(() => {
+    if (!map || restoredJump.current === jumpToLast) return
+    restoredJump.current = jumpToLast
+    const index = map.cells.findIndex((cell) =>
+      matchesLastPort(cell, map.id, lastPort)
+    )
+    if (index < 0) return
+    const frame = requestAnimationFrame(() => {
+      setFocused(index)
+      const button = buttons.current[index]
+      button?.focus({ preventScroll: true })
+      button?.scrollIntoView({
+        block: "nearest",
+        inline: "center",
+        behavior: "instant",
+      })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [map, lastPort, jumpToLast])
   function moveFocus(event: KeyboardEvent, index: number) {
     if (!map) return
     let next = index
@@ -394,6 +469,37 @@ function CanGrid({
           </p>
         </div>
         <div className="atlas-map-board-actions">
+          <button
+            className="atlas-last-port"
+            type="button"
+            onClick={onReturnToLast}
+            disabled={!lastPortAvailable}
+            aria-label={
+              lastPort
+                ? `Return to last port ${lastPort.row}/${lastPort.column}, Building ${lastPort.buildingNumber}, Can ${lastPort.canNumber}`
+                : "Last port: none selected"
+            }
+            title={
+              lastPort
+                ? `Building ${lastPort.buildingNumber} · Can ${lastPort.canNumber} · Row ${lastPort.row} / Column ${lastPort.column}${!lastPortAvailable ? " · Can no longer available" : ""}`
+                : "Click a port to keep your place"
+            }
+          >
+            <LocateFixed size={15} aria-hidden="true" />
+            <span>Last port</span>
+            {lastPort ? (
+              <>
+                <strong>
+                  {lastPort.row}/{lastPort.column}
+                </strong>
+                <small>
+                  B{lastPort.buildingNumber} · Can {lastPort.canNumber}
+                </small>
+              </>
+            ) : (
+              <strong>—</strong>
+            )}
+          </button>
           <Popover.Root>
             <Popover.Trigger className="atlas-text-button">
               <BookOpen size={14} aria-hidden="true" />
@@ -516,12 +622,19 @@ function CanGrid({
                                 onBlur={() => setHover(null)}
                                 onMouseEnter={(event) => inspect(event, cell)}
                                 onMouseLeave={() => setHover(null)}
-                                onClick={() => setHover(null)}
+                                onClick={() => {
+                                  setHover(null)
+                                  onPortSelect(cell)
+                                }}
                                 onKeyDown={(event) => moveFocus(event, index)}
                                 className="atlas-port-cell"
                                 data-state={display.state}
-
-                                aria-label={cellDescription(cell)}
+                                data-last-port={
+                                  matchesLastPort(cell, map.id, lastPort)
+                                    ? "true"
+                                    : undefined
+                                }
+                                aria-label={`${cellDescription(cell)}${matchesLastPort(cell, map.id, lastPort) ? "\nLast selected port" : ""}`}
                               >
                                 <span
                                   className="atlas-port-value"
