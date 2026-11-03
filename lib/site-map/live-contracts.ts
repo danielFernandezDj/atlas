@@ -1,0 +1,108 @@
+export const portStates = {
+  hashing: "Hashing",
+  slow: "Low hash rate",
+  zero: "Zero hash rate",
+  sleeping: "Sleeping",
+  repair: "Reserved · miner in repair",
+  reserved: "Reserved · miner elsewhere",
+  empty: "Empty",
+  unknown: "Occupied · telemetry unavailable",
+  unconfigured: "Not configured",
+  inactive: "Inactive",
+  conflict: "Assignment conflict",
+} as const
+export type PortState = keyof typeof portStates
+export type MapMiner = {
+  id: number
+  identity: number
+  serial: string
+  ip: string | null
+  locationId: number | null
+  locationKind: string | null
+}
+export type MapCell = {
+  row: number
+  column: number
+  locationId: number | null
+  code: string | null
+  active: boolean
+  port: {
+    id: number
+    number: string
+    switch: string
+    observedMac: string | null
+    lastSeenAt: string | null
+  } | null
+  occupant: MapMiner | null
+  reservation: MapMiner | null
+  conflict: boolean
+}
+export type LiveCanMap = {
+  id: number
+  siteId: number
+  building: number
+  number: string
+  rows: number
+  columns: number
+  active: boolean
+  cells: MapCell[]
+  issues: string[]
+  loadedAt: string
+}
+export type MapTelemetry = {
+  hashRateThs: number | null
+  expectedThs: number | null
+  sleeping: boolean | null
+  sampledAt: string
+}
+export function portDisplay(
+  cell: MapCell,
+  telemetry?: MapTelemetry,
+  now = Date.now()
+): { state: PortState; text: string } {
+  if (cell.conflict) return { state: "conflict", text: "!" }
+  if (!cell.active) return { state: "inactive", text: "×" }
+  if (!cell.locationId) return { state: "unconfigured", text: "·" }
+  if (!cell.occupant) {
+    if (cell.reservation)
+      return {
+        state:
+          cell.reservation.locationKind === "REPAIR" ? "repair" : "reserved",
+        text: "R",
+      }
+    return { state: "empty", text: "—" }
+  }
+  const age = telemetry ? now - Date.parse(telemetry.sampledAt) : NaN
+  if (!telemetry || !Number.isFinite(age) || age < -10000 || age > 120000)
+    return { state: "unknown", text: "?" }
+  if (telemetry.sleeping === true) return { state: "sleeping", text: "S" }
+  const rate = telemetry.hashRateThs
+  if (rate === null || !Number.isFinite(rate) || rate < 0)
+    return { state: "unknown", text: "?" }
+  if (rate === 0) return { state: "zero", text: "0 H" }
+  const low =
+    telemetry.expectedThs !== null &&
+    Number.isFinite(telemetry.expectedThs) &&
+    telemetry.expectedThs > 0 &&
+    rate < telemetry.expectedThs * 0.9
+  return { state: low ? "slow" : "hashing", text: String(Math.round(rate)) }
+}
+export function cellDescription(cell: MapCell) {
+  const state = portDisplay(cell)
+  return [
+    `Row ${cell.row} · Column ${cell.column}`,
+    cell.port
+      ? `${cell.port.switch} · Port ${cell.port.number}`
+      : "No network port configured",
+    cell.occupant
+      ? `Miner #${cell.occupant.identity} · ${cell.occupant.serial}`
+      : "No miner physically present",
+    cell.occupant ? `Recorded IP: ${cell.occupant.ip ?? "Not recorded"}` : null,
+    portStates[state.state],
+    cell.reservation
+      ? `Reserved: Miner #${cell.reservation.identity} · ${cell.reservation.serial} · Recorded IP: ${cell.reservation.ip ?? "Not recorded"}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n")
+}

@@ -20,6 +20,7 @@ import {
   LiveMinerWorkspace,
   MinerInventorySearch,
 } from "./technician/live-miner-workspace"
+import { LiveSiteMap } from "./technician/live-site-map"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
 import { WeatherOutlook } from "./technician/weather-outlook"
@@ -244,6 +245,27 @@ export function TechnicianDashboard({
               </footer>
             </>
           )}
+          {view === "site-map" &&
+            (selectedSite ? (
+              <LiveSiteMap
+                key={selectedSite.id}
+                siteId={selectedSite.id}
+                siteName={selectedSite.name}
+                buildings={dashboard.buildings}
+                refreshKey={dashboard.loadedAt}
+                onMiner={(id) => {
+                  setSelectedMinerId(id)
+                  setView("miners")
+                }}
+              />
+            ) : (
+              <section className="atlas-card" style={{ padding: 32 }}>
+                <h2>Choose a site</h2>
+                <p className="atlas-muted">
+                  Select a site to see its buildings, cans and port locations.
+                </p>
+              </section>
+            ))}
           {view === "miners" && (
             <LiveMinerWorkspace
               key={`${selectedMinerId ?? "none"}-${dashboard.loadedAt}`}
@@ -252,7 +274,7 @@ export function TechnicianDashboard({
               refreshKey={dashboard.loadedAt}
             />
           )}
-          {view !== "dashboard" && view !== "miners" && (
+          {view !== "dashboard" && view !== "miners" && view !== "site-map" && (
             <section
               className="atlas-card"
               aria-label={`${titles[view]} availability`}
@@ -260,20 +282,16 @@ export function TechnicianDashboard({
             >
               <Activity size={24} aria-hidden="true" />
               <h2>
-                {view === "site-map"
-                  ? "No site configuration loaded"
-                  : view === "actions"
-                    ? "Actions unavailable"
-                    : "No profile loaded"}
+                {view === "actions"
+                  ? "Actions unavailable"
+                  : "No profile loaded"}
               </h2>
               <p className="atlas-muted">
-                {view === "site-map"
-                  ? "Sites, buildings, cans, and positions will appear when configuration is connected."
-                  : view === "actions"
-                    ? "Registration and movement recording will be available when inventory and account access are connected."
-                    : view === "account"
-                      ? "Your identity and assigned sites will appear after sign-in is connected."
-                      : "Connect operational data to see records here."}
+                {view === "actions"
+                  ? "Registration and movement recording will be available when inventory and account access are connected."
+                  : view === "account"
+                    ? "Your identity and assigned sites will appear after sign-in is connected."
+                    : "Connect operational data to see records here."}
               </p>
             </section>
           )}
