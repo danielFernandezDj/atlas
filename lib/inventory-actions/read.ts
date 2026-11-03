@@ -131,7 +131,8 @@ export async function readActionMiner(db: PrismaClient, id: number) {
 }
 export async function readActionLocations(
   db: PrismaClient,
-  p: URLSearchParams
+  p: URLSearchParams,
+  sharedPallets = false
 ) {
   const page = Number(p.get("page") ?? 1),
     search = (p.get("search") ?? "").trim(),
@@ -152,8 +153,14 @@ export async function readActionLocations(
   )
     throw new ActionError(400, "Invalid location filters.")
   const coordinates = /^(\d{1,4})\s*\/\s*(\d{1,4})$/.exec(search)
-  const where = {
-    AND: availableLocationWhere,
+  const where: Prisma.locationsWhereInput = {
+    AND: sharedPallets
+      ? [
+          { is_active: true, kind: "PALLET", site: { is_active: true } },
+          { OR: [{ building_id: null }, { building: { is_active: true } }] },
+          { OR: [{ can_id: null }, { can: { is_active: true } }] },
+        ]
+      : availableLocationWhere,
     ...(site ? { site_id: Number(site) } : {}),
     ...(building ? { building_id: Number(building) } : {}),
     ...(can ? { can_id: Number(can) } : {}),
@@ -190,7 +197,7 @@ export async function readActionLocations(
       label: locationLabel(l),
       kind: l.kind,
       active: activeLocation(l),
-      available: isLocationAvailable(l),
+      available: sharedPallets ? activeLocation(l) : isLocationAvailable(l),
       coordinate:
         l.kind === "DEPLOYMENT_SLOT" ? `${l.row_index}/${l.slot_index}` : null,
     })),

@@ -268,3 +268,11 @@
     font-size: 10px;
   }
 }
+
+.atlas-registration-summary {
+  margin-top: 12px;
+  font-size: 12px;
+}
+.atlas-registration-summary p + p {
+  margin-top: 8px;
+}

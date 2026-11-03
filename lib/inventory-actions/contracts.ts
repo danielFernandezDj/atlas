@@ -11,16 +11,89 @@ const metadata = {
   modelId: id.nullable(),
   assetTag: z.string().trim().max(200).nullable(),
 }
+export const scrapConfirmationSchema = z
+  .object({
+    skeleton: z.literal(true),
+    controlBoard: z.literal(true),
+    hashboard1: z.literal(true),
+    hashboard2: z.literal(true),
+    hashboard3: z.literal(true),
+    acknowledged: z.literal(true),
+  })
+  .strict()
+const createFields = {
+  skeletonSerial: text,
+  registrationState: z.enum(["READY", "SCRAP"]),
+  palletId: id.nullable(),
+  componentConfirmation: scrapConfirmationSchema.nullable(),
+  powerSupplyPresent: z.boolean(),
+  ...metadata,
+  notes: z.string().trim().max(2000).default(""),
+}
+function validateCreation(
+  value: {
+    registrationState: "READY" | "SCRAP"
+    palletId: number | null
+    componentConfirmation: unknown
+    powerSupplyPresent: boolean
+  },
+  ctx: z.RefinementCtx
+) {
+  if (
+    value.registrationState === "SCRAP" &&
+    (!value.palletId || !value.componentConfirmation)
+  )
+    ctx.addIssue({
+      code: "custom",
+      message:
+        "Scrap miners require a pallet and confirmation of the skeleton, control board and three hashboards.",
+    })
+  if (
+    value.registrationState === "READY" &&
+    (value.palletId !== null ||
+      value.componentConfirmation !== null ||
+      value.powerSupplyPresent)
+  )
+    ctx.addIssue({
+      code: "custom",
+      message:
+        "Ready miners are registered without a destination or scrap checklist.",
+    })
+}
+export const creationEntrySchema = z
+  .object(createFields)
+  .strict()
+  .superRefine(validateCreation)
+export type CreationEntry = z.infer<typeof creationEntrySchema>
+export const createBatchSchema = z
+  .object({
+    kind: z.literal("create-batch"),
+    entries: z.array(creationEntrySchema).min(1).max(25),
+    submissionKey: z.uuid(),
+    notes: z.string().trim().max(2000).default(""),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (
+      new Set(value.entries.map((e) => e.skeletonSerial)).size !==
+      value.entries.length
+    )
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "Each skeleton serial can only appear once in a creation batch.",
+      })
+  })
+export type CreateBatchCommand = z.infer<typeof createBatchSchema>
 export const actionSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("create"),
-      skeletonSerial: text,
-      locationId: id,
-      ...metadata,
-      ...common,
+      ...createFields,
+      submissionKey: common.submissionKey,
     })
-    .strict(),
+    .strict()
+    .superRefine(validateCreation),
   z
     .object({
       kind: z.literal("move"),

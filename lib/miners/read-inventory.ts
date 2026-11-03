@@ -191,7 +191,7 @@ export async function readMinerInventory(
 }
 
 export async function readMinerInventoryDetail(
-  db: Pick<PrismaClient, "miner">,
+  db: Pick<PrismaClient, "miner" | "miner_history">,
   id: number
 ): Promise<InventoryMinerDetail | null> {
   const partSelect = { id: true, serial_number: true, condition: true } as const
@@ -260,6 +260,33 @@ export async function readMinerInventoryDetail(
     },
   })
   if (!miner) return null
+  const registration = await db.miner_history.findFirst({
+    where: {
+      miner_id: id,
+      kind: "INITIAL_STATE",
+      dateDeleted: null,
+      OR: [
+        { details: { path: ["registrationState"], equals: "READY" } },
+        { details: { path: ["registrationState"], equals: "SCRAP" } },
+      ],
+    },
+    orderBy: [{ occurred_at: "desc" }, { id: "desc" }],
+    select: { details: true, occurred_at: true, user: actor },
+  })
+  const registrationData = registration?.details as {
+    registrationState?: string
+    componentConfirmation?: {
+      skeleton?: boolean
+      controlBoard?: boolean
+      hashboard1?: boolean
+      hashboard2?: boolean
+      hashboard3?: boolean
+      acknowledged?: boolean
+      confirmedAt?: string
+      powerSupplyPresent?: boolean
+    }
+  } | null
+  const confirmation = registrationData?.componentConfirmation
   const partDto = (part: {
     id: number
     serial_number: string | null
@@ -274,6 +301,31 @@ export async function readMinerInventoryDetail(
       : `${source.toLowerCase()} integration`
   return {
     ...minerDto(miner),
+    registration:
+      registration &&
+      (registrationData?.registrationState === "READY" ||
+        registrationData?.registrationState === "SCRAP")
+        ? {
+            state: registrationData.registrationState,
+            by: who(registration.user, "MANUAL"),
+            occurredAt: registration.occurred_at.toISOString(),
+            componentConfirmation:
+              confirmation?.acknowledged &&
+              confirmation.skeleton &&
+              confirmation.controlBoard &&
+              confirmation.hashboard1 &&
+              confirmation.hashboard2 &&
+              confirmation.hashboard3 &&
+              typeof confirmation.confirmedAt === "string"
+                ? {
+                    hashboards: 3,
+                    powerSupplyPresent:
+                      confirmation.powerSupplyPresent === true,
+                    confirmedAt: confirmation.confirmedAt,
+                  }
+                : null,
+          }
+        : null,
     ip: miner.miner_ip,
     lastApiIp: miner.last_api_ip,
     createdAt: miner.dateCreated.toISOString(),

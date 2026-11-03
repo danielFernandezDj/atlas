@@ -142,6 +142,7 @@ test("deleted rows clamp the requested page and unassigned filtering handles nul
 
 test("miner details preserve missing fields, two-board positions, reservations and automated history", async () => {
   const db = {
+    miner_history: { findFirst: async () => null },
     miner: {
       findUnique: async (args) => {
         assert.deepEqual(args.where, { id: 42 })
@@ -225,6 +226,33 @@ test("miner details preserve missing fields, two-board positions, reservations a
   assert.equal(result.movementCount, 30)
   assert.equal(result.eventCount, 40)
   assert.equal(result.reservation.port, "7")
+  assert.equal(result.registration, null)
+  db.miner_history.findFirst = async (args) => {
+    assert.equal(args.where.miner_id, 42)
+    assert.equal(args.where.kind, "INITIAL_STATE")
+    return {
+      details: {
+        registrationState: "SCRAP",
+        componentConfirmation: {
+          skeleton: true,
+          controlBoard: true,
+          hashboard1: true,
+          hashboard2: true,
+          hashboard3: true,
+          acknowledged: true,
+          powerSupplyPresent: true,
+          confirmedAt: "2026-11-03T00:00:00Z",
+        },
+      },
+      user: { first_name: "Daniel", last_name: "Fernandez" },
+      occurred_at: new Date("2026-11-03T00:00:00Z"),
+    }
+  }
+  const registered = await readMinerInventoryDetail(db, 42)
+  assert.equal(registered.registration.state, "SCRAP")
+  assert.equal(registered.registration.by, "Daniel Fernandez")
+  assert.equal(registered.registration.componentConfirmation.hashboards, 3)
+
   assert.doesNotThrow(() => JSON.stringify(result))
 })
 

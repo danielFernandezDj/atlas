@@ -14,6 +14,8 @@ import {
   type InventoryPage,
 } from "@/lib/miners/inventory-contracts"
 import "./inventory-actions.css"
+import { CreateMiners } from "./create-miners"
+import { RequiredMark, LocationLabel } from "./action-fields"
 async function get<T>(
   params: Record<string, string>,
   signal?: AbortSignal
@@ -51,8 +53,7 @@ export function InventoryActions({
     ),
     [miner, setMiner] = useState<ActionMiner | null>(null)
   const [detail, setDetail] = useState<InventoryMinerDetail | null>(null)
-  const [serial, setSerial] = useState(""),
-    [serialReady, setSerialReady] = useState(false)
+  const [createExpanded, setCreateExpanded] = useState(false)
   const [destination, setDestination] = useState<number | null>(null)
   const [busy, setBusy] = useState(false),
     [result, setResult] = useState<{ minerId: number; message: string } | null>(
@@ -106,55 +107,30 @@ export function InventoryActions({
     setMode(next)
     setError("")
   }
-  async function checkSerial(event: FormEvent) {
-    event.preventDefault()
-    if (inFlight.current) return
-    inFlight.current = true
-    setBusy(true)
-    setError("")
-    try {
-      await get({ resource: "skeleton", serial: serial.trim() })
-      setSerialReady(true)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Cannot check skeleton.")
-    } finally {
-      inFlight.current = false
-      setBusy(false)
-    }
-  }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (inFlight.current || !mode) return
+    if (inFlight.current || (mode !== "move" && mode !== "edit")) return
     const form = new FormData(event.currentTarget)
     const metadata = {
       modelId: form.get("modelId") ? Number(form.get("modelId")) : null,
       assetTag: String(form.get("assetTag") ?? "").trim() || null,
     }
     const payload =
-      mode === "create"
+      mode === "move"
         ? {
             kind: mode,
-            skeletonSerial: serial.trim(),
+            minerId: miner!.id,
+            version: miner!.version,
             locationId: destination,
+            notes: String(form.get("notes") ?? "").trim(),
+          }
+        : {
+            kind: mode,
+            minerId: miner!.id,
+            version: miner!.version,
             ...metadata,
             notes: String(form.get("notes") ?? "").trim(),
           }
-        : mode === "move"
-          ? {
-              kind: mode,
-              minerId: miner!.id,
-              version: miner!.version,
-              locationId: destination,
-              notes: String(form.get("notes") ?? "").trim(),
-            }
-          : {
-              kind: mode,
-              minerId: miner!.id,
-              version: miner!.version,
-              modelId: metadata.modelId,
-              assetTag: metadata.assetTag,
-              notes: String(form.get("notes") ?? "").trim(),
-            }
     const fingerprint = JSON.stringify(payload)
     if (submission.current?.fingerprint !== fingerprint)
       submission.current = { fingerprint, key: crypto.randomUUID() }
@@ -194,7 +170,9 @@ export function InventoryActions({
     : mode === "insert"
       ? "Insert miners"
       : mode === "create"
-        ? "Create miner"
+        ? createExpanded
+          ? "Create miners"
+          : "Create miner"
         : mode === "move"
           ? "Update location"
           : mode === "edit"
@@ -206,7 +184,11 @@ export function InventoryActions({
       className={[
         "atlas-dialog",
         "atlas-inventory-action-dialog",
-        mode === "insert" ? "atlas-insert-dialog" : "",
+        mode === "insert" || (mode === "create" && createExpanded)
+          ? "atlas-insert-dialog"
+          : mode === "create"
+            ? "atlas-create-serial-dialog"
+            : "",
       ].join(" ")}
       aria-labelledby="inventory-action-title"
       onCancel={(event) => {
@@ -287,7 +269,7 @@ export function InventoryActions({
               [
                 "create",
                 "Create miner",
-                "Start with the skeleton serial number, then choose its location.",
+                "Register ready or scrap miners, then review and create the batch.",
                 Plus,
               ],
             ].map(([key, label, description, Icon]) => {
@@ -309,6 +291,18 @@ export function InventoryActions({
               )
             })}
           </div>
+        ) : mode === "create" ? (
+          <CreateMiners
+            options={options}
+            onExpandedChange={setCreateExpanded}
+            onSaved={onSaved}
+            onClose={onClose}
+            onBack={() => {
+              setCreateExpanded(false)
+              setMode(null)
+            }}
+            onBusyChange={setBusy}
+          />
         ) : mode === "insert" ? (
           <InsertMiners
             options={options}
@@ -331,142 +325,72 @@ export function InventoryActions({
                 ← All actions
               </button>
             )}
-            {mode !== "create" &&
-              (!minerId ? (
-                <MinerPicker
-                  onSelect={(id) => {
-                    setDestination(null)
-                    setMiner(null)
-                    setDetail(null)
-                    setMinerId(id)
-                    setError("")
-                  }}
-                />
-              ) : !miner ? (
-                <p role="status">Loading selected miner…</p>
-              ) : (
-                <div className="atlas-action-miner">
-                  <strong>
-                    Miner #{miner.identity} · {miner.serial}
-                  </strong>
-                  <span>Current location · {miner.location}</span>
-                  {detail && (
-                    <div className="atlas-action-company-info">
-                      <span>Owner · {detail.owner}</span>
-                      <span>
-                        Location kind ·{" "}
-                        {detail.location
-                          ? inventoryKindLabels[detail.location.kind]
-                          : "Not assigned"}
-                      </span>
-                      <span>Management · {detail.manager}</span>
-                    </div>
-                  )}
-                  {!context.lockedMiner && (
-                    <button
-                      className="atlas-text-button"
-                      disabled={busy}
-                      onClick={() => {
-                        setMinerId(null)
-                        setMiner(null)
-                        setDetail(null)
-                      }}
-                    >
-                      Choose another miner
-                    </button>
-                  )}
-                </div>
-              ))}
-            {mode === "create" && !serialReady ? (
-              <form onSubmit={checkSerial} className="atlas-action-form">
-                <label>
-                  <span>
-                    Skeleton serial number <RequiredMark />
-                  </span>
-                  <input
-                    required
-                    autoComplete="off"
-                    maxLength={200}
-                    value={serial}
-                    onChange={(e) => setSerial(e.target.value)}
-                    placeholder="Scan or enter skeleton serial"
-                    autoFocus
-                  />
-                </label>
-                <p className="atlas-muted">
-                  Enter the skeleton serial first to continue to the miner’s
-                  details and location.
-                </p>
-                <button
-                  className="atlas-action-primary"
-                  disabled={busy || !serial.trim()}
-                >
-                  {busy ? "Checking…" : "Continue"}
-                  <ArrowRight size={15} />
-                </button>
-              </form>
+            {!minerId ? (
+              <MinerPicker
+                onSelect={(id) => {
+                  setDestination(null)
+                  setMiner(null)
+                  setDetail(null)
+                  setMinerId(id)
+                  setError("")
+                }}
+              />
+            ) : !miner ? (
+              <p role="status">Loading selected miner…</p>
             ) : (
-              ((mode === "create" && serialReady) ||
-                (mode !== "create" && miner)) && (
-                <form
-                  key={`${mode}-${miner?.id ?? "new"}-${miner?.version ?? 0}`}
-                  onSubmit={save}
-                  className="atlas-action-form"
-                >
-                  <fieldset disabled={busy}>
-                    {mode === "create" && (
-                      <div className="atlas-action-miner">
-                        <strong>Skeleton · {serial}</strong>
-                        <button
-                          type="button"
-                          className="atlas-text-button"
-                          onClick={() => setSerialReady(false)}
-                        >
-                          Change serial
-                        </button>
-                      </div>
-                    )}
-                    {mode === "edit" && detail && (
-                      <MinerComponentDetails miner={detail} />
-                    )}
-                    {mode !== "move" && (
+              <div className="atlas-action-miner">
+                <strong>
+                  Miner #{miner.identity} · {miner.serial}
+                </strong>
+                <span>Current location · {miner.location}</span>
+                {detail && (
+                  <div className="atlas-action-company-info">
+                    <span>Owner · {detail.owner}</span>
+                    <span>
+                      Location kind ·{" "}
+                      {detail.location
+                        ? inventoryKindLabels[detail.location.kind]
+                        : "Not assigned"}
+                    </span>
+                    <span>Management · {detail.manager}</span>
+                  </div>
+                )}
+                {!context.lockedMiner && (
+                  <button
+                    className="atlas-text-button"
+                    disabled={busy}
+                    onClick={() => {
+                      setMinerId(null)
+                      setMiner(null)
+                      setDetail(null)
+                    }}
+                  >
+                    Choose another miner
+                  </button>
+                )}
+              </div>
+            )}
+            {miner && (
+              <form
+                key={`${mode}-${miner.id}-${miner.version}`}
+                onSubmit={save}
+                className="atlas-action-form"
+              >
+                <fieldset disabled={busy}>
+                  {mode === "edit" && (
+                    <>
+                      {detail && <MinerComponentDetails miner={detail} />}
                       <div className="atlas-action-fields">
-                        {mode === "create" && (
-                          <div className="atlas-action-fixed-companies">
-                            <span>
-                              Owner ·{" "}
-                              <strong>
-                                {options.assignment?.owner.name ??
-                                  "Ionic (not configured)"}
-                              </strong>
-                            </span>
-                            <span>
-                              Management ·{" "}
-                              <strong>
-                                {options.assignment?.manager.name ??
-                                  "DigitalCarpenter.io (not configured)"}
-                              </strong>
-                            </span>
-                            {!options.assignment && (
-                              <p role="alert">
-                                Configure the company records before creating a
-                                miner.
-                              </p>
-                            )}
-                          </div>
-                        )}
                         <label>
                           Miner model
                           <select
                             name="modelId"
-                            defaultValue={
-                              mode === "edit" ? (miner!.modelId ?? "") : ""
-                            }
+                            defaultValue={miner.modelId ?? ""}
                           >
                             <option value="">Not recorded</option>
-                            {options.models.map((m) => (
-                              <option key={m.id} value={m.id}>
-                                {m.label}
+                            {options.models.map((model) => (
+                              <option key={model.id} value={model.id}>
+                                {model.label}
                               </option>
                             ))}
                           </select>
@@ -476,74 +400,62 @@ export function InventoryActions({
                           <input
                             name="assetTag"
                             maxLength={200}
-                            defaultValue={
-                              mode === "edit" ? (miner!.assetTag ?? "") : ""
-                            }
+                            defaultValue={miner.assetTag ?? ""}
                           />
                         </label>
                       </div>
-                    )}
-                    {mode !== "edit" && (
-                      <LocationPicker
-                        options={options}
-                        initialId={context.locationId}
-                        siteId={siteId}
-                        onSelect={setDestination}
-                      />
-                    )}
-                    {mode === "edit" && (
                       <section className="atlas-action-vnish">
                         <h3>VNish settings</h3>
                         <LiveMinerSettings />
                       </section>
-                    )}
-                    <label>
-                      <span>
-                        Reason / notes <RequiredMark />
-                      </span>
-                      <textarea
-                        required
-                        minLength={3}
-                        maxLength={2000}
-                        name="notes"
-                        rows={2}
-                        placeholder="Why are you making this change?"
-                      />
-                    </label>
-                    <p className="atlas-action-save-note">
-                      {mode === "create"
-                        ? "Creates the miner and skeleton, records its initial location, and reserves a port when configured."
-                        : mode === "move"
-                          ? "Updates physical location and movement history. A move to repair keeps the miner’s reserved port."
-                          : "Updates this miner’s details and records who changed them."}
-                    </p>
-                    <div className="atlas-action-footer">
-                      <button
-                        className="atlas-action-primary"
-                        disabled={
-                          busy ||
-                          (mode !== "edit" && !destination) ||
-                          (mode === "create" && !options.assignment)
-                        }
-                      >
-                        {busy
-                          ? "Saving…"
-                          : mode === "create"
-                            ? "Create miner"
-                            : mode === "move"
-                              ? "Save location"
-                              : "Save miner"}
-                      </button>
-                      <button type="button" onClick={onClose}>
-                        Cancel
-                      </button>
-                    </div>
-                  </fieldset>
-                  {mode === "move" && detail && (
-                    <LocationHistory miner={detail} />
+                    </>
                   )}
-                </form>
-              )
+                  {mode === "move" && (
+                    <LocationPicker
+                      options={options}
+                      initialId={context.locationId}
+                      siteId={siteId}
+                      onSelect={setDestination}
+                    />
+                  )}
+                  <label>
+                    <span>
+                      Reason / notes <RequiredMark />
+                    </span>
+                    <textarea
+                      required
+                      minLength={3}
+                      maxLength={2000}
+                      name="notes"
+                      rows={2}
+                      placeholder="Why are you making this change?"
+                    />
+                  </label>
+                  <p className="atlas-action-save-note">
+                    {mode === "move"
+                      ? "Updates physical location and movement history. A move to repair keeps the miner’s reserved port."
+                      : "Updates this miner’s details and records who changed them."}
+                  </p>
+                  <div className="atlas-action-footer">
+                    <button
+                      className="atlas-action-primary"
+                      disabled={busy || (mode === "move" && !destination)}
+                    >
+                      {busy
+                        ? "Saving…"
+                        : mode === "move"
+                          ? "Save location"
+                          : "Save miner"}
+                    </button>
+                    <button type="button" onClick={onClose}>
+                      Cancel
+                    </button>
+                  </div>
+                </fieldset>
+                {mode === "move" && detail && (
+                  <LocationHistory miner={detail} />
+                )}
+              </form>
             )}
           </>
         )}
@@ -1021,33 +933,6 @@ function LocationHistory({ miner }: { miner: InventoryMinerDetail }) {
   )
 }
 
-function RequiredMark() {
-  return (
-    <span className="atlas-required" aria-label="required">
-      *
-    </span>
-  )
-}
-function LocationLabel({ location }: { location: ActionLocation }) {
-  const index = location.coordinate
-    ? location.label.indexOf(location.coordinate)
-    : -1
-  return (
-    <span>
-      {index < 0 ? (
-        location.label
-      ) : (
-        <>
-          {location.label.slice(0, index)}
-          <strong className="atlas-location-coordinate">
-            {location.coordinate}
-          </strong>
-          {location.label.slice(index + location.coordinate!.length)}
-        </>
-      )}
-    </span>
-  )
-}
 function InsertMiners({
   options,
   onSaved,

@@ -4,6 +4,7 @@ import {
   ActionError,
   actionSchema,
   insertSchema,
+  createBatchSchema,
 } from "@/lib/inventory-actions/contracts"
 import {
   readActionOptions,
@@ -17,6 +18,7 @@ import {
 import {
   performInventoryAction,
   performInsertBatch,
+  performCreateBatch,
 } from "@/lib/inventory-actions/write"
 import { parseMinerId } from "@/lib/miners/read-inventory"
 export const dynamic = "force-dynamic"
@@ -35,6 +37,10 @@ export async function GET(request: Request) {
         await readActionMiner(prisma, parseMinerId(p.get("id") ?? "")),
         { headers }
       )
+    if (resource === "scrap-pallets")
+      return Response.json(await readActionLocations(prisma, p, true), {
+        headers,
+      })
     if (resource === "locations")
       return Response.json(await readActionLocations(prisma, p), { headers })
     if (resource === "location") {
@@ -71,6 +77,16 @@ export async function GET(request: Request) {
           409,
           "This skeleton is already assigned or scrapped."
         )
+      if (
+        await prisma.miner.findUnique({
+          where: { serial_number: serial },
+          select: { id: true },
+        })
+      )
+        throw new ActionError(
+          409,
+          "This serial is already registered to a miner."
+        )
       return Response.json({ available: true }, { headers })
     }
     throw new ActionError(400, "Unknown inventory request.")
@@ -86,12 +102,31 @@ export async function POST(request: Request) {
     if (!request.headers.get("content-type")?.startsWith("application/json"))
       throw new ActionError(415, "JSON is required.")
     const text = await request.text()
-    if (text.length > 16000) throw new ActionError(413, "Request is too large.")
+    if (text.length > 128000)
+      throw new ActionError(413, "Request is too large.")
     let body: unknown
     try {
       body = JSON.parse(text)
     } catch {
       throw new ActionError(400, "Invalid request.")
+    }
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "kind" in body &&
+      body.kind === "create-batch"
+    ) {
+      const batch = createBatchSchema.safeParse(body)
+      if (!batch.success)
+        throw new ActionError(
+          400,
+          batch.error.issues[0]?.message ??
+            "Check the miner registration details."
+        )
+      return Response.json(
+        await performCreateBatch(prisma, actor.id, batch.data),
+        { headers }
+      )
     }
     if (
       typeof body === "object" &&

@@ -101,7 +101,10 @@ test(
           const command = {
             kind: "create",
             skeletonSerial: serial,
-            locationId: shared.id,
+            registrationState: "READY",
+            palletId: null,
+            componentConfirmation: null,
+            powerSupplyPresent: false,
             modelId: null,
             assetTag: null,
             notes: "Rolled-back integration validation",
@@ -114,7 +117,7 @@ test(
             await tx.miner_movements.count({
               where: { miner_id: made.minerId },
             }),
-            1
+            0
           )
           let miner = await tx.miner.findUniqueOrThrow({
             where: { id: made.minerId },
@@ -190,7 +193,7 @@ test(
           )
           assert.equal(
             await tx.miner_movements.count({ where: { miner_id: miner.id } }),
-            3
+            2
           )
           assert.equal(
             await tx.miner_history.count({
@@ -200,7 +203,7 @@ test(
                 user_id: actor.id,
               },
             }),
-            3
+            2
           )
           assert.equal(
             await tx.audit_log.count({
