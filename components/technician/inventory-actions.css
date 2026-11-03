@@ -1,4 +1,4 @@
-.atlas-inventory-action-dialog {
+.atlas-dialog.atlas-inventory-action-dialog {
   width: min(760px, calc(100vw - 24px));
   max-height: calc(100svh - 32px);
   margin: auto;
@@ -339,5 +339,273 @@
   }
   .atlas-action-menu > button {
     padding: 14px;
+  }
+}
+
+.atlas-action-company-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.atlas-action-components {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.atlas-action-components h3,
+.atlas-action-vnish h3,
+.atlas-action-location-history h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.atlas-action-components dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.atlas-action-components dt {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.atlas-action-components dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.atlas-action-location-history {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.atlas-action-location-history ol {
+  display: grid;
+  gap: 12px;
+  max-height: 240px;
+  overflow: auto;
+  margin-top: 12px;
+}
+.atlas-action-location-history li {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-action-location-history li span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin: 5px 0;
+}
+@media (max-width: 600px) {
+  .atlas-action-components dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+.atlas-required {
+  color: #ef6c76;
+  font-size: 14px;
+  font-weight: 700;
+}
+.atlas-action-fixed-companies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  grid-column: 1/-1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-action-fixed-companies span {
+  color: var(--muted-foreground);
+}
+.atlas-action-fixed-companies strong {
+  color: var(--foreground);
+}
+.atlas-location-coordinate {
+  color: var(--atlas-green, #22a875);
+  font-weight: 750;
+  font-size: 13px;
+}
+.atlas-insert-miners,
+.atlas-insert-draft {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.atlas-insert-draft {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.atlas-insert-queue {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.atlas-insert-queue li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-insert-queue li > div {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.atlas-insert-miners textarea {
+  width: 100%;
+}
+
+.atlas-inventory-action-dialog .atlas-action-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+}
+
+.atlas-dialog.atlas-inventory-action-dialog.atlas-insert-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.atlas-insert-dialog > .atlas-action-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% - 356px);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+}
+.atlas-insert-dialog > .atlas-action-body {
+  padding: 0;
+}
+.atlas-insert-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  min-width: 0;
+}
+.atlas-insert-entry-panel,
+.atlas-insert-review-panel {
+  height: min(840px, calc(100svh - 32px));
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.atlas-insert-entry-panel {
+  padding: 110px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: auto;
+}
+.atlas-insert-entry-panel > .atlas-text-button {
+  align-self: flex-start;
+}
+.atlas-insert-review-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.atlas-insert-review-panel > header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.atlas-insert-review-panel h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+.atlas-insert-review-panel h3 span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.atlas-insert-review-list {
+  padding: 16px;
+  min-height: 100px;
+  overflow: auto;
+  flex: 1;
+}
+.atlas-insert-review-list .atlas-insert-queue {
+  margin: 0;
+}
+.atlas-insert-review-list .atlas-insert-queue li {
+  display: grid;
+  gap: 12px;
+  background: var(--background);
+}
+.atlas-insert-review-list li[data-editing="true"] {
+  border-color: var(--primary);
+}
+.atlas-insert-card-actions {
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+.atlas-insert-remove {
+  color: var(--atlas-red, #e65e65);
+}
+.atlas-insert-review-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+  flex-shrink: 0;
+}
+.atlas-insert-review-footer .atlas-action-footer {
+  flex-wrap: wrap;
+}
+.atlas-dialog.atlas-insert-confirmation {
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+}
+.atlas-insert-confirmation > p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 12px 0 20px;
+}
+.atlas-insert-confirmation .atlas-action-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .atlas-dialog.atlas-inventory-action-dialog.atlas-insert-dialog {
+    overflow: auto;
+  }
+  .atlas-insert-dialog > .atlas-action-header {
+    position: sticky;
+    width: 100%;
+  }
+  .atlas-insert-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .atlas-insert-entry-panel {
+    height: auto;
+    padding: 20px 16px;
+    overflow: visible;
+    border-radius: 0 0 14px 14px;
+  }
+  .atlas-insert-review-panel {
+    height: auto;
+    min-height: 260px;
+  }
+  .atlas-insert-review-list {
+    max-height: 320px;
   }
 }

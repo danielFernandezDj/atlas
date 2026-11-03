@@ -1,5 +1,5 @@
 import "server-only"
-import type { PrismaClient } from "@/lib/generated/prisma/client"
+import type { PrismaClient, Prisma } from "@/lib/generated/prisma/client"
 import { ActionError, canWriteInventory } from "./contracts"
 export const locationSelect = {
   id: true,
@@ -11,6 +11,15 @@ export const locationSelect = {
   site: { select: { name: true, is_active: true } },
   building: { select: { building_number: true, is_active: true } },
   can: { select: { can_number: true, is_active: true } },
+  current_miners: { select: { id: true }, take: 1 },
+  slot_occupant: { select: { id: true } },
+  ports: {
+    select: {
+      reserved_miner_id: true,
+      active: true,
+      switch: { select: { active: true } },
+    },
+  },
   row_index: true,
   slot_index: true,
 } as const
@@ -58,12 +67,29 @@ export async function readActionOptions(db: PrismaClient, role: string) {
     db.sites.findMany({
       where: { is_active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        buildings: {
+          where: { is_active: true },
+          orderBy: { building_number: "asc" },
+          select: {
+            id: true,
+            building_number: true,
+            cans: {
+              where: { is_active: true },
+              orderBy: { can_number: "asc" },
+              select: { id: true, can_number: true },
+            },
+          },
+        },
+      },
     }),
   ])
   return {
     canWrite: canWriteInventory(role),
     companies,
+    assignment: fixedCompanies(companies),
     models: models.map((m) => ({
       id: m.id,
       label: `${m.manufacturer} ${m.name}`,
@@ -110,27 +136,41 @@ export async function readActionLocations(
   const page = Number(p.get("page") ?? 1),
     search = (p.get("search") ?? "").trim(),
     site = p.get("site"),
-    kind = p.get("kind")
+    kind = p.get("kind"),
+    building = p.get("building"),
+    can = p.get("can")
   if (
     !Number.isInteger(page) ||
     page < 1 ||
     page > 10000 ||
     search.length > 200 ||
+    [building, can].some(
+      (value) => value !== null && value !== "" && !/^[1-9]\d{0,8}$/.test(value)
+    ) ||
     (site && !/^[1-9]\d{0,8}$/.test(site)) ||
     (kind && !["DEPLOYMENT_SLOT", "REPAIR", "STAGING", "PALLET"].includes(kind))
   )
     throw new ActionError(400, "Invalid location filters.")
+  const coordinates = /^(\d{1,4})\s*\/\s*(\d{1,4})$/.exec(search)
   const where = {
+    AND: availableLocationWhere,
     ...(site ? { site_id: Number(site) } : {}),
+    ...(building ? { building_id: Number(building) } : {}),
+    ...(can ? { can_id: Number(can) } : {}),
     ...(kind ? { kind: kind as "DEPLOYMENT_SLOT" } : {}),
-    ...(search
+    ...(coordinates
       ? {
-          OR: [
-            { code: { contains: search, mode: "insensitive" as const } },
-            { name: { contains: search, mode: "insensitive" as const } },
-          ],
+          row_index: Number(coordinates[1]),
+          slot_index: Number(coordinates[2]),
         }
-      : {}),
+      : search
+        ? {
+            OR: [
+              { code: { contains: search, mode: "insensitive" as const } },
+              { name: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
   }
   const [total, locations] = await Promise.all([
     db.locations.count({ where }),
@@ -150,6 +190,66 @@ export async function readActionLocations(
       label: locationLabel(l),
       kind: l.kind,
       active: activeLocation(l),
+      available: isLocationAvailable(l),
+      coordinate:
+        l.kind === "DEPLOYMENT_SLOT" ? `${l.row_index}/${l.slot_index}` : null,
     })),
   }
+}
+
+export function fixedCompanies(companies: { id: number; name: string }[]) {
+  const owners = companies.filter(
+    (c) => c.name.trim().toLowerCase() === "ionic"
+  )
+  const managers = companies.filter(
+    (c) => c.name.trim().toLowerCase() === "digitalcarpenter.io"
+  )
+  return owners.length === 1 && managers.length === 1
+    ? { owner: owners[0], manager: managers[0] }
+    : null
+}
+export const availableLocationWhere: Prisma.locationsWhereInput[] = [
+  { is_active: true, site: { is_active: true } },
+  { OR: [{ building_id: null }, { building: { is_active: true } }] },
+  { OR: [{ can_id: null }, { can: { is_active: true } }] },
+  { current_miners: { none: {} } },
+  { slot_occupant: null },
+  { ports: { none: { reserved_miner_id: { not: null } } } },
+  {
+    OR: [
+      { kind: { not: "DEPLOYMENT_SLOT" } },
+      {
+        ports: {
+          some: {
+            active: true,
+            reserved_miner_id: null,
+            switch: { active: true },
+          },
+        },
+      },
+    ],
+  },
+]
+export function isLocationAvailable(l: {
+  is_active: boolean
+  site: { is_active: boolean }
+  building: { is_active: boolean } | null
+  can: { is_active: boolean } | null
+  kind: string
+  current_miners: { id: number }[]
+  slot_occupant: { id: number } | null
+  ports: {
+    reserved_miner_id: number | null
+    active: boolean
+    switch: { active: boolean }
+  }[]
+}) {
+  return (
+    activeLocation(l) &&
+    !l.current_miners.length &&
+    !l.slot_occupant &&
+    l.ports.every((p) => p.reserved_miner_id === null) &&
+    (l.kind !== "DEPLOYMENT_SLOT" ||
+      l.ports.some((p) => p.active && p.switch.active))
+  )
 }

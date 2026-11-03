@@ -172,8 +172,31 @@
   padding: 0 5px;
 }
 .atlas-miner-logs {
-  border-top: 1px solid var(--border);
-  padding: 0 18px;
+  position: fixed;
+  bottom: 12px;
+  left: 88px;
+  right: 12px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column-reverse;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 6px 24px #0004;
+  padding: 0 16px;
+}
+.atlas-selected-miner {
+  margin-bottom: 72px;
+}
+.atlas-miner-logs #atlas-miner-log-content {
+  max-height: min(48svh, 420px);
+  overflow: auto;
+  margin: 12px 0 0;
+}
+@media (max-width: 650px) {
+  .atlas-miner-logs {
+    left: 70px;
+  }
 }
 .atlas-miner-log-bar {
   display: flex;
@@ -188,7 +211,11 @@
   margin: 0;
   font-size: 12px;
 }
+.atlas-miner-log-bar > button {
+  order: 1;
+}
 .atlas-miner-log-bar > span {
+  order: 2;
   margin-left: auto;
   font-size: 11px;
 }
@@ -218,5 +245,26 @@
   }
   .atlas-instrument {
     padding: 12px;
+  }
+}
+
+.atlas-log-device-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 32px;
+}
+.atlas-log-device-tools button:disabled {
+  color: var(--muted-foreground);
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+@media (max-width: 500px) {
+  .atlas-log-device-tools {
+    font-size: 0;
+    gap: 0;
+  }
+  .atlas-log-device-tools button {
+    font-size: 10px;
   }
 }

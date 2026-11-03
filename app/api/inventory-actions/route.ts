@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma"
 import { actionActor, actionFailure } from "@/lib/inventory-actions/access"
-import { ActionError, actionSchema } from "@/lib/inventory-actions/contracts"
+import {
+  ActionError,
+  actionSchema,
+  insertSchema,
+} from "@/lib/inventory-actions/contracts"
 import {
   readActionOptions,
   readActionMiner,
@@ -8,8 +12,12 @@ import {
   locationSelect,
   locationLabel,
   activeLocation,
+  isLocationAvailable,
 } from "@/lib/inventory-actions/read"
-import { performInventoryAction } from "@/lib/inventory-actions/write"
+import {
+  performInventoryAction,
+  performInsertBatch,
+} from "@/lib/inventory-actions/write"
 import { parseMinerId } from "@/lib/miners/read-inventory"
 export const dynamic = "force-dynamic"
 const headers = { "Cache-Control": "no-store" }
@@ -41,6 +49,11 @@ export async function GET(request: Request) {
           label: locationLabel(l),
           kind: l.kind,
           active: activeLocation(l),
+          available: isLocationAvailable(l),
+          coordinate:
+            l.kind === "DEPLOYMENT_SLOT"
+              ? `${l.row_index}/${l.slot_index}`
+              : null,
         },
         { headers }
       )
@@ -79,6 +92,23 @@ export async function POST(request: Request) {
       body = JSON.parse(text)
     } catch {
       throw new ActionError(400, "Invalid request.")
+    }
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "kind" in body &&
+      body.kind === "insert"
+    ) {
+      const batch = insertSchema.safeParse(body)
+      if (!batch.success)
+        throw new ActionError(
+          400,
+          batch.error.issues[0]?.message ?? "Check the placements."
+        )
+      return Response.json(
+        await performInsertBatch(prisma, actor.id, batch.data),
+        { headers }
+      )
     }
     const parsed = actionSchema.safeParse(body)
     if (!parsed.success)
