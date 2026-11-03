@@ -247,3 +247,24 @@
     padding: 12px;
   }
 }
+
+.atlas-log-device-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 32px;
+}
+.atlas-log-device-tools button:disabled {
+  color: var(--muted-foreground);
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+@media (max-width: 500px) {
+  .atlas-log-device-tools {
+    font-size: 0;
+    gap: 0;
+  }
+  .atlas-log-device-tools button {
+    font-size: 10px;
+  }
+}

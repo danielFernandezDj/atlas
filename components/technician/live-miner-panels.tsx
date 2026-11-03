@@ -8,6 +8,7 @@ import {
   ChevronUp,
   ChevronDown,
   FileText,
+  Lightbulb,
 } from "lucide-react"
 import type { InventoryMinerDetail } from "@/lib/miners/inventory-contracts"
 import "./live-miner-panels.css"
@@ -266,7 +267,22 @@ export function MinerLogs() {
         <h3>
           <FileText size={15} /> Logs
         </h3>
-        <span className="atlas-muted">VNish</span>
+        <span className="atlas-muted atlas-log-device-tools">
+          VNish
+          <button
+            type="button"
+            className="atlas-text-button"
+            disabled
+            title="Connect VNish to flash this miner’s locator light"
+            aria-describedby="atlas-locator-status"
+          >
+            <Lightbulb size={14} />
+            Flash light
+          </button>
+          <span id="atlas-locator-status" className="sr-only">
+            Locator light unavailable until VNish is connected.
+          </span>
+        </span>
         <button
           className="atlas-text-button"
           aria-expanded={open}

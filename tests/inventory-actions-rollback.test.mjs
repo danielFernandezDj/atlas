@@ -68,6 +68,9 @@ test(
           const shared = await tx.locations.findFirst({
             where: {
               kind: "REPAIR",
+              current_miners: { none: {} },
+              slot_occupant: null,
+              ports: { none: { reserved_miner_id: { not: null } } },
               is_active: true,
               site: { is_active: true },
             },
@@ -99,8 +102,6 @@ test(
             kind: "create",
             skeletonSerial: serial,
             locationId: shared.id,
-            ownerId: company.id,
-            managerId: company.id,
             modelId: null,
             assetTag: null,
             notes: "Rolled-back integration validation",

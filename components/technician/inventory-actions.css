@@ -400,3 +400,69 @@
     grid-template-columns: 1fr;
   }
 }
+
+.atlas-required {
+  color: #ef6c76;
+  font-size: 14px;
+  font-weight: 700;
+}
+.atlas-action-fixed-companies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  grid-column: 1/-1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-action-fixed-companies span {
+  color: var(--muted-foreground);
+}
+.atlas-action-fixed-companies strong {
+  color: var(--foreground);
+}
+.atlas-location-coordinate {
+  color: var(--atlas-green, #22a875);
+  font-weight: 750;
+  font-size: 13px;
+}
+.atlas-insert-miners,
+.atlas-insert-draft {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.atlas-insert-draft {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.atlas-insert-queue {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.atlas-insert-queue li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-insert-queue li > div {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.atlas-insert-miners textarea {
+  width: 100%;
+}
+
+.atlas-inventory-action-dialog .atlas-action-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+}
