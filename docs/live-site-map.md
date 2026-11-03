@@ -56,8 +56,26 @@ at the selected building only. Reserved ports count actual reservations.
 Linked totals can include miners deployed elsewhere or without a current
 location; category counts are not presented as an exhaustive partition.
 
-The grid shows an explicit Inventory loaded summary with configured locations,
-physical miners present, and repair reservations for the selected can. Building
-figures cover all of its cans, while the grid figures cover only the selected
-can. Unconfigured cans say so. Neither summary infers live mining status from
+The inventory panel shows configured locations, physical miners present, and
+repair reservations for the selected can. Building figures cover all of its
+cans; the explicitly labelled Can summary covers only the selected can.
+Unconfigured cans say so. Neither summary infers live mining status from
 inventory presence.
+
+## Grid-first layout
+
+Building selectors use two columns (1/2 above 3/4). Can selectors sit beside them
+in fixed numeric positions: 1/3/5/7 above 2/4/6/8. Phone labels abbreviate buildings
+to B1–B4 and cans to their number while retaining their full accessible names.
+
+The selected-can location/miner/repair-reservation summary lives below building
+metrics in the inventory panel. It shares the grid's single can response. A
+request key prevents a previous can's response appearing under a new selection,
+and changes abort the previous request. Building totals remain scoped to the
+building; can counts remain explicitly labelled with the selected can.
+
+The map guide opens from a text-and-icon control and is closed by default. It
+contains the status legend, telemetry availability, units, coordinate explanation,
+keyboard/hover instructions, and scope explanation for building/can counts.
+Actual map data errors and coordinate warnings stay visible. Each port box shows
+its row/column address at the top right and its state/rate at the lower left.

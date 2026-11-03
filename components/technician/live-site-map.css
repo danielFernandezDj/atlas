@@ -136,49 +136,49 @@
   outline: 2px solid var(--atlas-blue);
   outline-offset: 1px;
 }
-.atlas-map-board [data-state="hashing"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="hashing"] {
   background: #145d45;
   color: #c8ffe3;
 }
-.atlas-map-board [data-state="slow"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="slow"] {
   background: #884613;
   color: #ffe2bc;
 }
-.atlas-map-board [data-state="zero"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="zero"] {
   background: #922e38;
   color: #ffe0e2;
 }
-.atlas-map-board [data-state="sleeping"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="sleeping"] {
   background: #c5b2f0;
   color: #302149;
 }
-.atlas-map-board [data-state="repair"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="repair"] {
   background: #295cc4;
   color: #e1ecff;
 }
-.atlas-map-board [data-state="reserved"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="reserved"] {
   background: #263d69;
   color: #dceaff;
 }
-.atlas-map-board [data-state="empty"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="empty"] {
   background: #60636b;
   color: #eeeeef;
 }
-.atlas-map-board [data-state="unknown"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="unknown"] {
   background: #303c48;
   color: #d1dfec;
   border: 1px dashed #8293a6;
 }
-.atlas-map-board [data-state="unconfigured"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="unconfigured"] {
   background: transparent;
   color: var(--muted-foreground);
   border: 1px dashed var(--border);
 }
-.atlas-map-board [data-state="inactive"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="inactive"] {
   background: var(--muted);
   color: var(--muted-foreground);
 }
-.atlas-map-board [data-state="conflict"] {
+:is(.atlas-map-board, .atlas-map-guide) [data-state="conflict"] {
   background: repeating-linear-gradient(135deg, #5c421b 0 4px, #302d27 4px 8px);
   color: #ffe1aa;
 }
@@ -438,5 +438,202 @@
   }
   .atlas-map-data-summary {
     margin-inline: 16px;
+  }
+}
+
+/* Compact selectors and on-demand map guidance leave the grid near the top. */
+.atlas-live-map {
+  gap: 14px;
+}
+.atlas-map-selectors {
+  padding: 16px 20px;
+  gap: 22px;
+}
+.atlas-map-choices {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.atlas-map-selectors fieldset + fieldset {
+  margin-top: 0;
+}
+.atlas-map-building-options {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 6px;
+}
+.atlas-map-can-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: column;
+  gap: 6px;
+}
+.atlas-map-options button {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+.atlas-map-can-options button {
+  min-width: 0;
+}
+.atlas-map-options button .atlas-map-building-full,
+.atlas-map-options button .atlas-map-can-prefix {
+  display: inline;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.atlas-map-options button .atlas-map-building-short {
+  display: none;
+}
+.atlas-building-inventory {
+  padding-left: 22px;
+}
+.atlas-building-summary-heading {
+  margin-bottom: 10px;
+}
+.atlas-selected-can-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 9px;
+  color: var(--muted-foreground);
+}
+.atlas-selected-can-summary strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.atlas-map-board > .atlas-section-header {
+  padding: 14px 18px 8px;
+}
+.atlas-map-board .atlas-eyebrow {
+  display: none;
+}
+.atlas-map-board .atlas-section-header h2 {
+  font-size: 14px;
+}
+.atlas-map-board .atlas-section-header p.atlas-muted {
+  font-size: 10px;
+  margin-top: 4px;
+}
+.atlas-map-board-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.atlas-map-guide {
+  width: 440px;
+  max-width: calc(100vw - 24px);
+  max-height: min(640px, calc(100svh - 40px));
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 10px 35px #00000030;
+  font-size: 12px;
+}
+.atlas-map-guide .atlas-map-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 12px 0;
+  font-size: 11px;
+  gap: 12px;
+}
+.atlas-map-guide .atlas-map-help,
+.atlas-map-guide .atlas-map-notice {
+  margin: 12px 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.atlas-port-cell {
+  position: relative;
+}
+.atlas-port-value {
+  position: absolute;
+  left: 4px;
+  bottom: 3px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+}
+.atlas-port-coordinate {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 500;
+}
+@media (max-width: 1250px) and (min-width: 801px) {
+  .atlas-map-selectors {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+  .atlas-map-choices {
+    gap: 14px;
+  }
+  .atlas-map-options button {
+    padding-inline: 7px;
+    font-size: 10px;
+  }
+  .atlas-building-inventory {
+    padding-left: 16px;
+  }
+}
+@media (max-width: 800px) {
+  .atlas-map-selectors {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .atlas-building-inventory {
+    padding: 12px 0 0;
+  }
+  .atlas-map-choices {
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 18px;
+  }
+  .atlas-map-board-actions {
+    gap: 14px;
+  }
+}
+@media (max-width: 600px) {
+  .atlas-map-choices {
+    grid-template-columns: 78px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .atlas-map-building-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .atlas-map-options button .atlas-map-building-full,
+  .atlas-map-options button .atlas-map-can-prefix {
+    display: none;
+  }
+  .atlas-map-options button .atlas-map-building-short {
+    display: inline;
+    font-size: inherit;
+    color: inherit;
+    margin: 0;
+  }
+  .atlas-map-options button {
+    padding-inline: 5px;
+  }
+  .atlas-map-board > .atlas-section-header {
+    gap: 10px;
+  }
+  .atlas-map-guide .atlas-map-legend {
+    grid-template-columns: 1fr;
+  }
+  .atlas-building-inventory dl {
+    gap: 10px 14px;
+  }
+  .atlas-building-inventory dd {
+    font-size: 19px;
   }
 }

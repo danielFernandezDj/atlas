@@ -8,7 +8,7 @@ import {
   type FocusEvent,
   type MouseEvent,
 } from "react"
-import { ArrowUpRight, RefreshCw, X } from "lucide-react"
+import { ArrowUpRight, BookOpen, RefreshCw, X } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Popover } from "@base-ui/react/popover"
 import type { DashboardData } from "@/lib/dashboard/contracts"
@@ -41,6 +41,39 @@ export function LiveSiteMap({
   )
   const [canId, setCanId] = useState<number | null>(cans[0]?.id ?? null)
   const [refresh, setRefresh] = useState(0)
+  const mapKey = `${siteId}-${canId}-${refreshKey}-${refresh}`
+  const [mapResult, setMapResult] = useState<{
+    key: string
+    map: LiveCanMap | null
+    error: string
+  } | null>(null)
+  useEffect(() => {
+    if (canId === null) return
+    const controller = new AbortController()
+    fetch(`/api/site-map?site=${siteId}&can=${canId}`, {
+      signal: controller.signal,
+      cache: "no-store",
+      credentials: "same-origin",
+    })
+      .then(async (response) => {
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message ?? "Map unavailable.")
+        if (!controller.signal.aborted)
+          setMapResult({ key: mapKey, map: data, error: "" })
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted)
+          setMapResult({
+            key: mapKey,
+            map: null,
+            error:
+              failure instanceof Error ? failure.message : "Map unavailable.",
+          })
+      })
+    return () => controller.abort()
+  }, [siteId, canId, mapKey])
+  const currentMap = mapResult?.key === mapKey ? mapResult : null
+
   function chooseBuilding(id: number) {
     setBuildingId(id)
     const next = [...(buildings.find((b) => b.id === id)?.cans ?? [])].sort(
@@ -54,14 +87,20 @@ export function LiveSiteMap({
         <div className="atlas-map-choices">
           <fieldset>
             <legend>Building</legend>
-            <div className="atlas-map-options">
+            <div className="atlas-map-options atlas-map-building-options">
               {buildings.map((b) => (
                 <button
                   key={b.id}
+                  aria-label={`Building ${b.number}${!b.active ? " · Inactive" : ""}`}
                   aria-pressed={b.id === buildingId}
                   onClick={() => chooseBuilding(b.id)}
                 >
-                  Building {b.number}
+                  <span className="atlas-map-building-full">
+                    Building {b.number}
+                  </span>
+                  <span className="atlas-map-building-short" aria-hidden="true">
+                    B{b.number}
+                  </span>
                   {!b.active && <span>Inactive</span>}
                 </button>
               ))}
@@ -76,11 +115,23 @@ export function LiveSiteMap({
               {cans.map((c) => (
                 <button
                   key={c.id}
+                  aria-label={`Can ${c.number}${!c.active ? " · Inactive" : ""}`}
+                  style={
+                    /^[1-8]$/.test(c.number)
+                      ? {
+                          gridColumn: Math.ceil(Number(c.number) / 2),
+                          gridRow: Number(c.number) % 2 ? 1 : 2,
+                        }
+                      : undefined
+                  }
                   aria-pressed={c.id === canId}
                   onClick={() => setCanId(c.id)}
                   title={`${c.slots} configured locations${!c.active ? " · Inactive" : ""}`}
                 >
-                  Can {c.number}
+                  <span className="atlas-map-can-prefix" aria-hidden="true">
+                    Can{" "}
+                  </span>
+                  {c.number}
                   {!c.active && <span>Inactive</span>}
                 </button>
               ))}
@@ -95,14 +146,17 @@ export function LiveSiteMap({
             key={`${siteId}-${buildingId}-${refreshKey}-${refresh}`}
             siteId={siteId}
             buildingId={buildingId}
+            canNumber={cans.find((c) => c.id === canId)?.number ?? null}
+            canMap={currentMap?.map ?? null}
+            canError={currentMap?.error ?? ""}
           />
         )}
       </section>
       {canId !== null && (
         <CanGrid
-          key={`${siteId}-${canId}-${refreshKey}-${refresh}`}
-          siteId={siteId}
-          canId={canId}
+          key={mapKey}
+          map={currentMap?.map ?? null}
+          error={currentMap?.error ?? ""}
           onMiner={onMiner}
           onRefresh={() => setRefresh((v) => v + 1)}
         />
@@ -113,9 +167,15 @@ export function LiveSiteMap({
 function BuildingInventory({
   siteId,
   buildingId,
+  canNumber,
+  canMap,
+  canError,
 }: {
   siteId: number
   buildingId: number
+  canNumber: string | null
+  canMap: LiveCanMap | null
+  canError: string
 }) {
   const [data, setData] = useState<BuildingMapSummary | null>(null)
   const [error, setError] = useState("")
@@ -186,29 +246,54 @@ function BuildingInventory({
               </div>
             ))}
           </dl>
-          <p className="atlas-building-summary-note">
-            {data.linked
-              ? "Linked by physical location or reserved port. Repair includes this building’s reserved miners in repair areas."
-              : "No miners are linked to this building by location or reserved port."}
-          </p>
         </>
+      )}
+      {canNumber !== null && (
+        <div className="atlas-selected-can-summary" role="status">
+          <strong>Can {canNumber}</strong>
+          {canError ? (
+            <span>Map data unavailable</span>
+          ) : !canMap ? (
+            <span>Loading can inventory…</span>
+          ) : (
+            <>
+              <span>
+                {canMap.cells.filter((cell) => cell.locationId !== null).length}{" "}
+                locations
+              </span>
+              <span>
+                {canMap.cells.filter((cell) => cell.occupant !== null).length}{" "}
+                miners present
+              </span>
+              <span>
+                {
+                  canMap.cells.filter(
+                    (cell) => portDisplay(cell).state === "repair"
+                  ).length
+                }{" "}
+                repair reservations
+              </span>
+              {canMap.cells.every((cell) => cell.locationId === null) && (
+                <span>Not configured</span>
+              )}
+            </>
+          )}
+        </div>
       )}
     </section>
   )
 }
 function CanGrid({
-  siteId,
-  canId,
+  map,
+  error,
   onMiner,
   onRefresh,
 }: {
-  siteId: number
-  canId: number
+  map: LiveCanMap | null
+  error: string
   onMiner: (id: number) => void
   onRefresh: () => void
 }) {
-  const [map, setMap] = useState<LiveCanMap | null>(null),
-    [error, setError] = useState("")
   const [focused, setFocused] = useState(0)
   const [hover, setHover] = useState<{
     cell: MapCell
@@ -240,26 +325,6 @@ function CanGrid({
       ),
     [map?.cells.length]
   )
-  useEffect(() => {
-    const controller = new AbortController()
-    fetch(`/api/site-map?site=${siteId}&can=${canId}`, {
-      signal: controller.signal,
-      cache: "no-store",
-      credentials: "same-origin",
-    })
-      .then(async (response) => {
-        const data = await response.json()
-        if (!response.ok) throw new Error(data.message ?? "Map unavailable.")
-        if (!controller.signal.aborted) setMap(data)
-      })
-      .catch((failure) => {
-        if (!controller.signal.aborted)
-          setError(
-            failure instanceof Error ? failure.message : "Map unavailable."
-          )
-      })
-    return () => controller.abort()
-  }, [siteId, canId])
   function moveFocus(event: KeyboardEvent, index: number) {
     if (!map) return
     let next = index
@@ -328,45 +393,67 @@ function CanGrid({
             {!map.active && " · Inactive hierarchy"}
           </p>
         </div>
-        <button onClick={onRefresh} className="atlas-text-button">
-          <RefreshCw size={14} />
-          Refresh map
-        </button>
+        <div className="atlas-map-board-actions">
+          <Popover.Root>
+            <Popover.Trigger className="atlas-text-button">
+              <BookOpen size={14} aria-hidden="true" />
+              Map guide
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Positioner
+                sideOffset={8}
+                align="end"
+                className="atlas-port-positioner"
+              >
+                <Popover.Popup className="atlas-map-guide">
+                  <div className="atlas-port-popup-heading">
+                    <Popover.Title>Map guide</Popover.Title>
+                    <Popover.Close aria-label="Close map guide">
+                      <X size={16} />
+                    </Popover.Close>
+                  </div>
+                  <div
+                    className="atlas-map-legend"
+                    aria-label="Port status legend"
+                  >
+                    {Object.entries(portStates).map(([state, label]) => (
+                      <span key={state}>
+                        <i data-state={state} />
+                        {label}
+                        {counts[state] ? ` · ${counts[state]}` : ""}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="atlas-map-help">
+                    Values are TH/s. Hover or focus for port details; click for
+                    options. Use arrow keys to move between ports.
+                  </p>
+                  <p className="atlas-map-notice">
+                    Live hash-rate and sleep readings are not connected.
+                    Occupied ports show ? until telemetry is available;
+                    reservations and physical locations come from Atlas.
+                  </p>
+                  <p className="atlas-map-help">
+                    Coordinates are row / column, starting at 0. The state or
+                    hash rate is at the lower left of each box; its address is
+                    at the upper right.
+                  </p>
+                  <p className="atlas-map-help">
+                    Building inventory includes miners at that building or
+                    reserved to its ports. Repair counts include reserved miners
+                    away in repair areas. The Can summary covers only the
+                    selected can.
+                  </p>
+                </Popover.Popup>
+              </Popover.Positioner>
+            </Popover.Portal>
+          </Popover.Root>
+          <button onClick={onRefresh} className="atlas-text-button">
+            <RefreshCw size={14} />
+            Refresh map
+          </button>
+        </div>
       </div>
-      <div className="atlas-map-data-summary" role="status">
-        <span className="atlas-map-loaded-dot" />
-        <strong>Inventory loaded</strong>
-        <span>
-          {map.cells.filter((cell) => cell.locationId !== null).length}{" "}
-          configured locations
-        </span>
-        <span>
-          {map.cells.filter((cell) => cell.occupant !== null).length} miners
-          present
-        </span>
-        <span>{counts.repair ?? 0} repair reservations</span>
-        {map.cells.every((cell) => cell.locationId === null) && (
-          <span>No locations configured for this can.</span>
-        )}
-      </div>
-      <div className="atlas-map-legend" aria-label="Port status legend">
-        {Object.entries(portStates).map(([state, label]) => (
-          <span key={state}>
-            <i data-state={state} />
-            {label}
-            {counts[state] ? ` · ${counts[state]}` : ""}
-          </span>
-        ))}
-      </div>
-      <p className="atlas-map-help">
-        Values are TH/s. Hover or focus for port details; click for options. Use
-        arrow keys to move between ports.
-      </p>
-      <p className="atlas-map-notice">
-        Live hash-rate and sleep readings are not connected. Occupied ports show
-        ? until telemetry is available; reservations and physical locations come
-        from Atlas.
-      </p>
       {map.issues.map((issue) => (
         <p className="atlas-map-notice" role="alert" key={issue}>
           {issue}
@@ -436,7 +523,18 @@ function CanGrid({
 
                                 aria-label={cellDescription(cell)}
                               >
-                                {display.text}
+                                <span
+                                  className="atlas-port-value"
+                                  aria-hidden="true"
+                                >
+                                  {display.text}
+                                </span>
+                                <span
+                                  className="atlas-port-coordinate"
+                                  aria-hidden="true"
+                                >
+                                  {cell.row}/{cell.column}
+                                </span>
                               </Popover.Trigger>
                             </td>
                           )
