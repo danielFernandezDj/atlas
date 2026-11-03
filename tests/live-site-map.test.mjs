@@ -14,7 +14,7 @@ const url = (s) =>
 const { portDisplay } = await import(
   url(await compile("../lib/site-map/live-contracts.ts"))
 )
-const { readLiveCanMap } = await import(
+const { readLiveCanMap, readBuildingMapSummary } = await import(
   url(
     (await compile("../lib/site-map/read-live.ts")).replace(
       'import "server-only";',
@@ -221,5 +221,99 @@ test("map endpoint authenticates before any map query and exposes no write metho
   )
   assert.match(source, /if \(denied\) return denied/)
   assert.doesNotMatch(source, /export async function (POST|PATCH|DELETE|PUT)/)
+  assert.match(source, /no-store/)
+})
+
+test("building summary includes reserved repair miners without counting unrelated buildings", async () => {
+  const calls = []
+  const db = {
+    $transaction: async (callback, options) => {
+      assert.equal(options.isolationLevel, "RepeatableRead")
+      return callback({
+        buildings: {
+          findFirst: async (args) => {
+            assert.deepEqual(args.where, { id: 7, site_id: 3 })
+            return {
+              id: 7,
+              building_number: 2,
+              is_active: true,
+              site: { is_active: true },
+            }
+          },
+        },
+        miner: {
+          count: async (args) => {
+            calls.push(args.where)
+            return [14, 10, 2, 1, 1][calls.length - 1]
+          },
+        },
+        port_index: {
+          count: async (args) => {
+            assert.deepEqual(args.where, {
+              location: { building_id: 7 },
+              reserved_miner_id: { not: null },
+            })
+            return 13
+          },
+        },
+      })
+    },
+  }
+  const summary = await readBuildingMapSummary(db, 3, 7)
+  assert.equal(summary.linked, 14)
+  assert.equal(summary.deployed, 10)
+  assert.equal(summary.repair, 2)
+  assert.equal(summary.reserved, 13)
+  const linked = {
+    OR: [
+      { current_location: { building_id: 7 } },
+      { reserved_port: { location: { building_id: 7 } } },
+    ],
+  }
+  assert.deepEqual(calls[0], linked)
+  assert.deepEqual(calls[1], {
+    current_location: { building_id: 7, kind: "DEPLOYMENT_SLOT" },
+  })
+  assert.deepEqual(calls[2], {
+    AND: [linked, { current_location: { kind: "REPAIR" } }],
+  })
+})
+test("missing building summary stops without inventory reads; failures remain failures", async () => {
+  const db = {
+    $transaction: async (callback) =>
+      callback({
+        buildings: { findFirst: async () => null },
+        miner: {
+          count: async () => {
+            throw new Error("Should not query")
+          },
+        },
+      }),
+  }
+  assert.equal(await readBuildingMapSummary(db, 1, 7), null)
+  await assert.rejects(
+    readBuildingMapSummary(
+      {
+        $transaction: async () => {
+          throw new Error("Offline")
+        },
+      },
+      1,
+      7
+    ),
+    /Offline/
+  )
+})
+test("building summary endpoint authenticates before querying and remains read-only", async () => {
+  const source = await readFile(
+    new URL("../app/api/site-map/building/route.ts", import.meta.url),
+    "utf8"
+  )
+  assert.ok(
+    source.indexOf("await minerReadAccess()") <
+      source.indexOf("await readBuildingMapSummary(")
+  )
+  assert.match(source, /if \(denied\) return denied/)
+  assert.doesNotMatch(source, /export async function (POST|PUT|PATCH|DELETE)/)
   assert.match(source, /no-store/)
 })

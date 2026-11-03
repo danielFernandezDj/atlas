@@ -177,29 +177,31 @@ export function TechnicianDashboard({
           </div>
         </header>
         <main className="atlas-main" aria-busy={pending}>
-          <div className="atlas-page-heading">
-            <div>
-              <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
-              <h1>{titles[view]}</h1>
-              <p className="atlas-muted">
-                {view === "miners"
-                  ? "Selected miner identity, components and recorded history."
-                  : (selectedSite?.description ??
-                    "Site inventory and recent recorded movements.")}
-              </p>
+          {view !== "site-map" && (
+            <div className="atlas-page-heading">
+              <div>
+                <p className="atlas-eyebrow">ATLAS / OPERATIONS</p>
+                <h1>{titles[view]}</h1>
+                <p className="atlas-muted">
+                  {view === "miners"
+                    ? "Selected miner identity, components and recorded history."
+                    : (selectedSite?.description ??
+                      "Site inventory and recent recorded movements.")}
+                </p>
+              </div>
+              {view === "dashboard" && (
+                <MinerInventorySearch
+                  key={selectedSite?.id ?? "all"}
+                  sites={sites}
+                  initialSite={selectedSite?.id ?? null}
+                  onSelect={(id) => {
+                    setSelectedMinerId(id)
+                    setView("miners")
+                  }}
+                />
+              )}
             </div>
-            {view === "dashboard" && (
-              <MinerInventorySearch
-                key={selectedSite?.id ?? "all"}
-                sites={sites}
-                initialSite={selectedSite?.id ?? null}
-                onSelect={(id) => {
-                  setSelectedMinerId(id)
-                  setView("miners")
-                }}
-              />
-            )}
-          </div>
+          )}
           {view === "dashboard" && (
             <>
               <BitcoinStrip />
@@ -250,7 +252,6 @@ export function TechnicianDashboard({
               <LiveSiteMap
                 key={selectedSite.id}
                 siteId={selectedSite.id}
-                siteName={selectedSite.name}
                 buildings={dashboard.buildings}
                 refreshKey={dashboard.loadedAt}
                 onMiner={(id) => {

@@ -8,7 +8,7 @@ import {
   type FocusEvent,
   type MouseEvent,
 } from "react"
-import { ArrowUpRight, MapPin, RefreshCw, X } from "lucide-react"
+import { ArrowUpRight, RefreshCw, X } from "lucide-react"
 import { createPortal } from "react-dom"
 import { Popover } from "@base-ui/react/popover"
 import type { DashboardData } from "@/lib/dashboard/contracts"
@@ -16,19 +16,18 @@ import {
   cellDescription,
   portDisplay,
   portStates,
+  type BuildingMapSummary,
   type LiveCanMap,
   type MapCell,
 } from "@/lib/site-map/live-contracts"
 import "./live-site-map.css"
 export function LiveSiteMap({
   siteId,
-  siteName,
   buildings,
   refreshKey,
   onMiner,
 }: {
   siteId: number
-  siteName: string
   buildings: DashboardData["buildings"]
   refreshKey: string
   onMiner: (id: number) => void
@@ -52,46 +51,52 @@ export function LiveSiteMap({
   return (
     <div className="atlas-live-map">
       <section className="atlas-card atlas-map-selectors">
-        <div className="atlas-map-selector-heading">
-          <MapPin size={18} />
-          <h2>{siteName} · Site map</h2>
+        <div className="atlas-map-choices">
+          <fieldset>
+            <legend>Building</legend>
+            <div className="atlas-map-options">
+              {buildings.map((b) => (
+                <button
+                  key={b.id}
+                  aria-pressed={b.id === buildingId}
+                  onClick={() => chooseBuilding(b.id)}
+                >
+                  Building {b.number}
+                  {!b.active && <span>Inactive</span>}
+                </button>
+              ))}
+              {!buildings.length && (
+                <p>No buildings configured at this site.</p>
+              )}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Can</legend>
+            <div className="atlas-map-options atlas-map-can-options">
+              {cans.map((c) => (
+                <button
+                  key={c.id}
+                  aria-pressed={c.id === canId}
+                  onClick={() => setCanId(c.id)}
+                  title={`${c.slots} configured locations${!c.active ? " · Inactive" : ""}`}
+                >
+                  Can {c.number}
+                  {!c.active && <span>Inactive</span>}
+                </button>
+              ))}
+              {building && !cans.length && (
+                <p>No cans configured in this building.</p>
+              )}
+            </div>
+          </fieldset>
         </div>
-        <fieldset>
-          <legend>Building</legend>
-          <div className="atlas-map-options">
-            {buildings.map((b) => (
-              <button
-                key={b.id}
-                aria-pressed={b.id === buildingId}
-                onClick={() => chooseBuilding(b.id)}
-              >
-                Building {b.number}
-                {!b.active && <span>Inactive</span>}
-              </button>
-            ))}
-            {!buildings.length && <p>No buildings configured at this site.</p>}
-          </div>
-        </fieldset>
-        <fieldset>
-          <legend>Can</legend>
-          <div className="atlas-map-options atlas-map-can-options">
-            {cans.map((c) => (
-              <button
-                key={c.id}
-                aria-pressed={c.id === canId}
-                onClick={() => setCanId(c.id)}
-              >
-                Can {c.number}
-                <span>
-                  {c.slots} locations{!c.active && " · Inactive"}
-                </span>
-              </button>
-            ))}
-            {building && !cans.length && (
-              <p>No cans configured in this building.</p>
-            )}
-          </div>
-        </fieldset>
+        {buildingId !== null && (
+          <BuildingInventory
+            key={`${siteId}-${buildingId}-${refreshKey}-${refresh}`}
+            siteId={siteId}
+            buildingId={buildingId}
+          />
+        )}
       </section>
       {canId !== null && (
         <CanGrid
@@ -103,6 +108,92 @@ export function LiveSiteMap({
         />
       )}
     </div>
+  )
+}
+function BuildingInventory({
+  siteId,
+  buildingId,
+}: {
+  siteId: number
+  buildingId: number
+}) {
+  const [data, setData] = useState<BuildingMapSummary | null>(null)
+  const [error, setError] = useState("")
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`/api/site-map/building?site=${siteId}&building=${buildingId}`, {
+      signal: controller.signal,
+      cache: "no-store",
+      credentials: "same-origin",
+    })
+      .then(async (response) => {
+        const body = await response.json()
+        if (!response.ok)
+          throw new Error(body.message ?? "Building inventory unavailable.")
+        if (!controller.signal.aborted) setData(body)
+      })
+      .catch((failure) => {
+        if (!controller.signal.aborted)
+          setError(
+            failure instanceof Error
+              ? failure.message
+              : "Building inventory unavailable."
+          )
+      })
+    return () => controller.abort()
+  }, [siteId, buildingId, retry])
+  return (
+    <section
+      className="atlas-building-inventory"
+      aria-label="Selected building inventory"
+    >
+      {error ? (
+        <div role="alert">
+          <p>{error}</p>
+          <button
+            className="atlas-text-button"
+            onClick={() => {
+              setError("")
+              setRetry((v) => v + 1)
+            }}
+          >
+            Retry building inventory
+          </button>
+        </div>
+      ) : !data ? (
+        <p className="atlas-muted" role="status">
+          Loading building inventory…
+        </p>
+      ) : (
+        <>
+          <div className="atlas-building-summary-heading">
+            <h2>Building {data.number} inventory</h2>
+            <span>Database records{!data.active && " · Inactive"}</span>
+          </div>
+          <dl>
+            {[
+              ["Linked miners", data.linked],
+              ["Deployed here", data.deployed],
+              ["In repair", data.repair],
+              ["In staging", data.staging],
+              ["On pallets", data.pallet],
+              ["Reserved ports", data.reserved],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="atlas-building-summary-note">
+            {data.linked
+              ? "Linked by physical location or reserved port. Repair includes this building’s reserved miners in repair areas."
+              : "No miners are linked to this building by location or reserved port."}
+          </p>
+        </>
+      )}
+    </section>
   )
 }
 function CanGrid({
@@ -241,6 +332,22 @@ function CanGrid({
           <RefreshCw size={14} />
           Refresh map
         </button>
+      </div>
+      <div className="atlas-map-data-summary" role="status">
+        <span className="atlas-map-loaded-dot" />
+        <strong>Inventory loaded</strong>
+        <span>
+          {map.cells.filter((cell) => cell.locationId !== null).length}{" "}
+          configured locations
+        </span>
+        <span>
+          {map.cells.filter((cell) => cell.occupant !== null).length} miners
+          present
+        </span>
+        <span>{counts.repair ?? 0} repair reservations</span>
+        {map.cells.every((cell) => cell.locationId === null) && (
+          <span>No locations configured for this can.</span>
+        )}
       </div>
       <div className="atlas-map-legend" aria-label="Port status legend">
         {Object.entries(portStates).map(([state, label]) => (

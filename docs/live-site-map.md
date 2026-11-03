@@ -36,3 +36,28 @@ requires a real expected rate; no universal 78 TH/s threshold is assumed.
 Disconnect and Replace miner appear disabled with an explanation. Implementing
 those workflows requires authorization, concurrency protection and history
 recording; the current map never changes assignments.
+
+## Compact controls and building inventory
+
+The map omits the page hero and duplicate site title; the top header continues
+to identify the site. Building and can controls occupy the left half of the
+selector card, with smaller can buttons. The right half shows database counts
+for the selected building: unique linked miners, deployed here, in repair,
+in staging, on pallets, and reserved ports. Small screens stack the two halves.
+
+`GET /api/site-map/building?site=<id>&building=<id>` applies the same staff access
+checks as the can endpoint and verifies building/site membership. Counts run in
+a repeatable-read transaction. Linked miners use the union of physical building
+location and reserved-port building, so one miner counts once within a building.
+Repair/staging/pallet counts use this linkage and the miner's actual current
+location kind. A miner in a shared repair area without a building can therefore
+still count against its reserved building. Deployed here uses physical location
+at the selected building only. Reserved ports count actual reservations.
+Linked totals can include miners deployed elsewhere or without a current
+location; category counts are not presented as an exhaustive partition.
+
+The grid shows an explicit Inventory loaded summary with configured locations,
+physical miners present, and repair reservations for the selected can. Building
+figures cover all of its cans, while the grid figures cover only the selected
+can. Unconfigured cans say so. Neither summary infers live mining status from
+inventory presence.

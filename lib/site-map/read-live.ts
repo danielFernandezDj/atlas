@@ -1,6 +1,11 @@
 import "server-only"
 import type { PrismaClient } from "@/lib/generated/prisma/client"
-import type { LiveCanMap, MapCell, MapMiner } from "./live-contracts"
+import type {
+  BuildingMapSummary,
+  LiveCanMap,
+  MapCell,
+  MapMiner,
+} from "./live-contracts"
 const minerSelect = {
   id: true,
   identify_miner_id: true,
@@ -161,4 +166,71 @@ export async function readLiveCanMap(
       : [],
     loadedAt: new Date().toISOString(),
   }
+}
+
+export async function readBuildingMapSummary(
+  db: Pick<PrismaClient, "$transaction">,
+  siteId: number,
+  buildingId: number
+): Promise<BuildingMapSummary | null> {
+  return db.$transaction(
+    async (tx) => {
+      const building = await tx.buildings.findFirst({
+        where: { id: buildingId, site_id: siteId },
+        select: {
+          id: true,
+          building_number: true,
+          is_active: true,
+          site: { select: { is_active: true } },
+        },
+      })
+      if (!building) return null
+      const linked = {
+        OR: [
+          { current_location: { building_id: buildingId } },
+          { reserved_port: { location: { building_id: buildingId } } },
+        ],
+      }
+      const [total, deployed, repair, staging, pallet, reserved] =
+        await Promise.all([
+          tx.miner.count({ where: linked }),
+          tx.miner.count({
+            where: {
+              current_location: {
+                building_id: buildingId,
+                kind: "DEPLOYMENT_SLOT",
+              },
+            },
+          }),
+          tx.miner.count({
+            where: { AND: [linked, { current_location: { kind: "REPAIR" } }] },
+          }),
+          tx.miner.count({
+            where: { AND: [linked, { current_location: { kind: "STAGING" } }] },
+          }),
+          tx.miner.count({
+            where: { AND: [linked, { current_location: { kind: "PALLET" } }] },
+          }),
+          tx.port_index.count({
+            where: {
+              location: { building_id: buildingId },
+              reserved_miner_id: { not: null },
+            },
+          }),
+        ])
+      return {
+        id: building.id,
+        number: building.building_number,
+        active: building.is_active && building.site.is_active,
+        linked: total,
+        deployed,
+        repair,
+        staging,
+        pallet,
+        reserved,
+        loadedAt: new Date().toISOString(),
+      }
+    },
+    { isolationLevel: "RepeatableRead" }
+  )
 }

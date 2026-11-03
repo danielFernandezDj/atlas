@@ -106,3 +106,16 @@ export function cellDescription(cell: MapCell) {
     .filter(Boolean)
     .join("\n")
 }
+
+export type BuildingMapSummary = {
+  id: number
+  number: number
+  active: boolean
+  linked: number
+  deployed: number
+  repair: number
+  staging: number
+  pallet: number
+  reserved: number
+  loadedAt: string
+}

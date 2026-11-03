@@ -6,16 +6,6 @@
 .atlas-map-selectors {
   padding: 22px;
 }
-.atlas-map-selector-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 22px;
-}
-.atlas-map-selector-heading svg {
-  color: var(--atlas-blue);
-}
-.atlas-map-selector-heading h2,
 .atlas-map-board h2 {
   font-size: 18px;
   font-weight: 600;
@@ -322,4 +312,131 @@
   white-space: pre-line;
   pointer-events: none;
   overflow-wrap: anywhere;
+}
+
+/* Keep map controls compact and building inventory alongside them. */
+.atlas-map-selectors {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 18px 22px;
+  align-items: start;
+}
+.atlas-map-choices {
+  min-width: 0;
+}
+.atlas-map-selectors fieldset + fieldset {
+  margin-top: 16px;
+}
+.atlas-map-selectors legend {
+  margin-bottom: 8px;
+}
+.atlas-map-options {
+  gap: 7px;
+}
+.atlas-map-options button {
+  min-width: 0;
+  padding: 9px 12px;
+  font-size: 11px;
+  border-radius: 6px;
+  min-height: 36px;
+}
+.atlas-map-can-options {
+  display: flex;
+  flex-wrap: wrap;
+}
+.atlas-map-can-options button {
+  flex: 0 0 auto;
+  min-width: 56px;
+  text-align: center;
+  padding: 8px 10px;
+}
+.atlas-building-inventory {
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  padding-left: 28px;
+}
+.atlas-building-summary-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.atlas-building-summary-heading h2 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.atlas-building-summary-heading span {
+  font-size: 9px;
+  color: var(--muted-foreground);
+}
+.atlas-building-inventory dl {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+.atlas-building-inventory dt {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  margin-bottom: 7px;
+}
+.atlas-building-inventory dd {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.atlas-building-summary-note {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  margin-top: 14px;
+  line-height: 1.5;
+}
+.atlas-map-data-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+  margin: 0 22px 18px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.atlas-map-data-summary strong {
+  font-weight: 500;
+  color: var(--foreground);
+}
+.atlas-map-loaded-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--atlas-green);
+}
+@media (max-width: 1200px) {
+  .atlas-building-inventory dl {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 18px;
+  }
+}
+@media (max-width: 800px) {
+  .atlas-map-selectors {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 16px;
+  }
+  .atlas-building-inventory {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 16px 0 0;
+  }
+  .atlas-map-can-options button {
+    flex: 0 0 auto;
+  }
+  .atlas-building-inventory dd {
+    font-size: 21px;
+  }
+  .atlas-map-data-summary {
+    margin-inline: 16px;
+  }
 }
