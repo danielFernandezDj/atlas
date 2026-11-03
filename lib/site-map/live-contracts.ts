@@ -119,3 +119,27 @@ export type BuildingMapSummary = {
   reserved: number
   loadedAt: string
 }
+
+export type LastMapPort = {
+  siteId: number
+  buildingId: number
+  canId: number
+  buildingNumber: number
+  canNumber: string
+  row: number
+  column: number
+  locationId: number | null
+}
+export function matchesLastPort(
+  cell: MapCell,
+  canId: number,
+  last: LastMapPort | null
+) {
+  return (
+    !!last &&
+    last.canId === canId &&
+    last.row === cell.row &&
+    last.column === cell.column &&
+    last.locationId === cell.locationId
+  )
+}

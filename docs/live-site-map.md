@@ -79,3 +79,21 @@ contains the status legend, telemetry availability, units, coordinate explanatio
 keyboard/hover instructions, and scope explanation for building/can counts.
 Actual map data errors and coordinate warnings stay visible. Each port box shows
 its row/column address at the top right and its state/rate at the lower left.
+
+
+## Last working port
+
+Activating a cell (click, Enter, or Space) records its site, building, can,
+coordinates and location ID in the dashboard's navigation state. Hover/focus
+alone does not replace the marker. Each site keeps a separate last port for the
+current dashboard session. Full page reload or sign-out clears this UI state;
+no inventory records or browser storage are written.
+
+The Last port control shows the address and building/can, and returns to that
+can from another selection. Returning from Miners initializes the map to the
+last working building/can, focuses the recorded port and scrolls it into view.
+Gold borders/text distinguish the bookmark without replacing the status color.
+Matches require the can, coordinates and location ID, so a new location at the
+same address is not silently treated as the old port. A changed miner assignment
+at the same location retains the port marker. Removed cans cannot be revisited
+through the marker. No port is assumed selected before the first activation.

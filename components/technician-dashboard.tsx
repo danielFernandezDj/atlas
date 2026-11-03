@@ -20,6 +20,7 @@ import {
   LiveMinerWorkspace,
   MinerInventorySearch,
 } from "./technician/live-miner-workspace"
+import type { LastMapPort } from "@/lib/site-map/live-contracts"
 import { LiveSiteMap } from "./technician/live-site-map"
 import { SiteOverview } from "./technician/site-overview"
 import { MovementHistory } from "./technician/movement-history"
@@ -55,6 +56,7 @@ export function TechnicianDashboard({
 }: TechnicianDashboardProps) {
   const [view, setView] = useState<View>("dashboard")
   const [selectedMinerId, setSelectedMinerId] = useState<number | null>(null)
+  const [lastPorts, setLastPorts] = useState<Record<number, LastMapPort>>({})
   const [pending, startTransition] = useTransition()
   const router = useRouter()
   const { sites, selectedSite } = dashboard
@@ -253,6 +255,13 @@ export function TechnicianDashboard({
                 key={selectedSite.id}
                 siteId={selectedSite.id}
                 buildings={dashboard.buildings}
+                lastPort={lastPorts[selectedSite.id] ?? null}
+                onPortSelect={(port) =>
+                  setLastPorts((previous) => ({
+                    ...previous,
+                    [port.siteId]: port,
+                  }))
+                }
                 refreshKey={dashboard.loadedAt}
                 onMiner={(id) => {
                   setSelectedMinerId(id)

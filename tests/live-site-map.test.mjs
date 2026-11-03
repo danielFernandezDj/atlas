@@ -11,7 +11,7 @@ const compile = async (p) =>
   }).outputText
 const url = (s) =>
   `data:text/javascript;base64,${Buffer.from(s).toString("base64")}`
-const { portDisplay } = await import(
+const { portDisplay, matchesLastPort } = await import(
   url(await compile("../lib/site-map/live-contracts.ts"))
 )
 const { readLiveCanMap, readBuildingMapSummary } = await import(
@@ -316,4 +316,33 @@ test("building summary endpoint authenticates before querying and remains read-o
   assert.match(source, /if \(denied\) return denied/)
   assert.doesNotMatch(source, /export async function (POST|PUT|PATCH|DELETE)/)
   assert.match(source, /no-store/)
+})
+
+test("last-port matching uses the can, coordinates and stable location identity", () => {
+  const last = {
+    siteId: 3,
+    buildingId: 7,
+    canId: 2,
+    buildingNumber: 1,
+    canNumber: "2",
+    row: 0,
+    column: 0,
+    locationId: 9,
+  }
+  assert.equal(matchesLastPort(cell, 2, last), true)
+  assert.equal(matchesLastPort(cell, 3, last), false)
+  assert.equal(matchesLastPort({ ...cell, row: 1 }, 2, last), false)
+  assert.equal(matchesLastPort({ ...cell, locationId: 10 }, 2, last), false)
+  assert.equal(
+    matchesLastPort({ ...cell, occupant: { ...occupant, id: 2 } }, 2, last),
+    true
+  )
+  assert.equal(matchesLastPort(cell, 2, null), false)
+  assert.equal(
+    matchesLastPort({ ...cell, locationId: null }, 2, {
+      ...last,
+      locationId: null,
+    }),
+    true
+  )
 })
