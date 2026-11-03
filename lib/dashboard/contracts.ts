@@ -12,6 +12,8 @@ export type DashboardData = {
   loadedAt: string
   summary: {
     miners: number
+    linked: number
+    repairReserved: number
     deployed: number
     repair: number
     staging: number

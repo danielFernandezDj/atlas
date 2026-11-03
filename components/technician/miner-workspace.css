@@ -1122,3 +1122,51 @@
     width: 100%;
   }
 }
+
+.atlas-dashboard-search-row .atlas-dashboard-miner-search {
+  max-width: none;
+  width: 100%;
+  padding: 8px 10px;
+  margin: 0;
+}
+.atlas-dashboard-search-row .atlas-directory-filters {
+  grid-template-columns: minmax(180px, 1fr) 132px 140px 86px;
+  gap: 7px;
+}
+.atlas-dashboard-search-row .atlas-directory-search,
+.atlas-dashboard-search-row .atlas-miner-search-select select,
+.atlas-dashboard-search-row .atlas-miner-search-submit {
+  height: 34px;
+  border-radius: 6px;
+}
+.atlas-dashboard-search-row .atlas-directory-search {
+  padding-inline: 10px;
+}
+.atlas-dashboard-search-row .atlas-directory-search input {
+  font-size: 11px;
+}
+.atlas-dashboard-search-row .atlas-miner-search-submit {
+  font-size: 11px;
+  padding-inline: 10px;
+}
+@media (max-width: 760px) {
+  .atlas-dashboard-search-row .atlas-directory-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 64px;
+    gap: 6px;
+  }
+  .atlas-dashboard-search-row .atlas-directory-search {
+    grid-column: 1/-1;
+  }
+  .atlas-dashboard-search-row .atlas-miner-search-submit {
+    grid-column: 3;
+    width: 100%;
+  }
+  .atlas-dashboard-search-row .atlas-miner-search-select select {
+    font-size: 10px;
+    padding-left: 8px;
+    padding-right: 24px;
+  }
+  .atlas-dashboard-search-row .atlas-miner-search-submit svg {
+    display: none;
+  }
+}

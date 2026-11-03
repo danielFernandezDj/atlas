@@ -64,23 +64,6 @@ export function WeatherOutlook({
       className="atlas-weather"
       aria-label={`${siteName} weather forecast`}
     >
-      <div className="atlas-weather-heading">
-        <h2>
-          <span className="atlas-weather-compact-label">3-day</span>
-          <span className="atlas-weather-wide-label">7-day</span> outlook ·{" "}
-          {siteName}
-        </h2>
-        {current && !failed && (
-          <a
-            href={current.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            title={`National Weather Service · Updated ${new Date(current.updatedAt).toLocaleString("en-US", { timeZone: "America/Chicago" })} CT`}
-          >
-            National Weather Service ↗
-          </a>
-        )}
-      </div>
       {!site ? (
         <p className="atlas-weather-status">Weather location not configured.</p>
       ) : failed ? (
@@ -157,5 +140,27 @@ export function WeatherOutlook({
         </ol>
       )}
     </section>
+  )
+}
+
+export function WeatherSourceLink({ siteName }: { siteName: string }) {
+  const site = weatherSiteByName(siteName)
+  if (!site) return null
+  return (
+    <a
+      className="atlas-weather-source-link"
+      href={`https://forecast.weather.gov/MapClick.php?lat=${site.latitude}&lon=${site.longitude}`}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Full National Weather Service forecast for ${siteName}`}
+      title={`Open the full forecast for ${siteName}`}
+    >
+      <span className="atlas-weather-source-full">
+        National Weather Service ↗
+      </span>
+      <span className="atlas-weather-source-short" aria-hidden="true">
+        NWS ↗
+      </span>
+    </a>
   )
 }

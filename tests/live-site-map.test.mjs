@@ -12,8 +12,14 @@ const compile = async (p) =>
 const url = (s) =>
   `data:text/javascript;base64,${Buffer.from(s).toString("base64")}`
 const contractsUrl = url(await compile("../lib/site-map/live-contracts.ts"))
-const { portDisplay, matchesLastPort, canHealth, summarizeCanAssignments } =
-  await import(contractsUrl)
+const {
+  portDisplay,
+  matchesLastPort,
+  canHealth,
+  summarizeCanAssignments,
+  matchesPortFilter,
+  portStates,
+} = await import(contractsUrl)
 const { readLiveCanMap, readBuildingMapSummary } = await import(
   url(
     (await compile("../lib/site-map/read-live.ts"))
@@ -400,4 +406,13 @@ test("can counts include reserved repair miners but count a physical/reserved mi
   assert.equal(result.miners, 3)
   assert.equal(result.stage, "unknown")
   assert.equal(result.hashingPercent, null)
+})
+
+test("map color filters preserve all states by default and match any selected color", () => {
+  for (const state of Object.keys(portStates))
+    assert.equal(matchesPortFilter(state, []), true)
+  assert.equal(matchesPortFilter("zero", ["zero"]), true)
+  assert.equal(matchesPortFilter("unknown", ["zero"]), false)
+  assert.equal(matchesPortFilter("repair", ["zero", "repair"]), true)
+  assert.equal(matchesPortFilter("empty", ["zero", "repair"]), false)
 })
