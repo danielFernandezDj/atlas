@@ -6,6 +6,7 @@ import {
   insertSchema,
   createBatchSchema,
   createPalletSchema,
+  managePalletSchema,
 } from "@/lib/inventory-actions/contracts"
 import {
   readActionOptions,
@@ -21,6 +22,10 @@ import {
   performInsertBatch,
   performCreateBatch,
 } from "@/lib/inventory-actions/write"
+import {
+  readPallets,
+  performManagePallet,
+} from "@/lib/inventory-actions/manage-pallets"
 import { performCreatePallet } from "@/lib/inventory-actions/create-pallet"
 import { parseMinerId } from "@/lib/miners/read-inventory"
 export const dynamic = "force-dynamic"
@@ -30,6 +35,8 @@ export async function GET(request: Request) {
     const actor = await actionActor()
     const p = new URL(request.url).searchParams,
       resource = p.get("resource") ?? "options"
+    if (resource === "pallets")
+      return Response.json(await readPallets(prisma, p), { headers })
     if (resource === "options")
       return Response.json(await readActionOptions(prisma, actor.role), {
         headers,
@@ -111,6 +118,23 @@ export async function POST(request: Request) {
       body = JSON.parse(text)
     } catch {
       throw new ActionError(400, "Invalid request.")
+    }
+    if (
+      typeof body === "object" &&
+      body !== null &&
+      "kind" in body &&
+      body.kind === "manage-pallet"
+    ) {
+      const parsed = managePalletSchema.safeParse(body)
+      if (!parsed.success)
+        throw new ActionError(
+          400,
+          parsed.error.issues[0]?.message ?? "Check the pallet details."
+        )
+      return Response.json(
+        await performManagePallet(prisma, actor.id, parsed.data),
+        { headers }
+      )
     }
     if (
       typeof body === "object" &&

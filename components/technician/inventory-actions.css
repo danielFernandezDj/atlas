@@ -750,3 +750,85 @@
 .atlas-create-pallet-form {
   margin-top: 18px;
 }
+
+.atlas-manage-pallets {
+  display: grid;
+  gap: 16px;
+}
+.atlas-pallet-filters {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+.atlas-pallet-filters label > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.atlas-pallet-list {
+  display: grid;
+  gap: 8px;
+}
+.atlas-pallet-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--background);
+}
+.atlas-pallet-card:hover,
+.atlas-pallet-card:focus-visible {
+  border-color: var(--atlas-blue);
+}
+.atlas-pallet-card > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.atlas-pallet-card strong,
+.atlas-pallet-card small {
+  display: block;
+}
+.atlas-pallet-card small {
+  color: var(--muted-foreground);
+  margin-top: 5px;
+}
+.atlas-pallet-card-meta {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+.atlas-pallet-summary,
+.atlas-pallet-confirm {
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.atlas-pallet-summary p,
+.atlas-pallet-confirm p {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+}
+.atlas-pallet-danger {
+  color: var(--destructive);
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  padding: 9px 12px;
+}
+.atlas-pallet-danger:disabled {
+  opacity: 0.4;
+}
+@media (max-width: 540px) {
+  .atlas-pallet-filters {
+    grid-template-columns: 1fr;
+  }
+  .atlas-pallet-card {
+    gap: 8px;
+    padding: 10px;
+  }
+}

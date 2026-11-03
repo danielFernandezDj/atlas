@@ -224,3 +224,30 @@ export const createPalletSchema = z
   })
   .strict()
 export type CreatePalletCommand = z.infer<typeof createPalletSchema>
+
+export const managePalletSchema = z
+  .object({
+    kind: z.literal("manage-pallet"),
+    palletId: id,
+    operation: z.enum(["update", "archive", "restore", "delete"]),
+    name: createPalletSchema.shape.name,
+    code: createPalletSchema.shape.code,
+    expected: z
+      .object({ name: text, code: text, active: z.boolean() })
+      .strict(),
+    ...common,
+  })
+  .strict()
+export type ManagePalletCommand = z.infer<typeof managePalletSchema>
+export type ManagedPallet = {
+  id: number
+  name: string
+  code: string
+  siteId: number
+  siteName: string
+  active: boolean
+  siteActive: boolean
+  minerCount: number
+  used: boolean
+}
+export type PalletPage = { items: ManagedPallet[]; total: number; page: number }
