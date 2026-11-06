@@ -1,3 +1,8 @@
+/**
+ * Serves the paginated miner directory used by miners/miner-inventory-search.tsx
+ * and the action miner picker. minerReadAccess authorizes the request before
+ * lib/miners/read-inventory.ts queries and serializes database records.
+ */
 import { prisma } from "@/lib/prisma"
 import { minerReadAccess, inventoryFailure } from "@/lib/miners/api-access"
 import {

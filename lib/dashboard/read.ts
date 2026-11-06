@@ -1,3 +1,8 @@
+/**
+ * Authorizes the signed-in staff identity and reads a consistent dashboard snapshot
+ * for app/technician/page.tsx. Counts, site topology and recent movements are selected
+ * inside a read transaction; missing telemetry is not replaced with demo data.
+ */
 import "server-only"
 
 import type { PrismaClient } from "@/lib/generated/prisma/client"

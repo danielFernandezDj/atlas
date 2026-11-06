@@ -1,3 +1,10 @@
+/**
+ * Applies map port actions in serializable transactions after checking staff and
+ * expected port snapshots. It reuses inventory-actions/write.ts for miner moves so
+ * reservation changes, movement history and audit receipts commit together.
+ *
+ * Navigation: authorization and receipt replay; location/port locks; expected snapshot checks; operation branches; audit and retries.
+ */
 import "server-only"
 import type { PrismaClient, Prisma } from "@/lib/generated/prisma/client"
 import {
@@ -35,6 +42,7 @@ export async function performPortAction(
             throw new ActionError(403, "Your account cannot change inventory.")
           const { submissionKey, ...payload } = input,
             fingerprint = JSON.stringify(payload)
+          // Receipt replay precedes snapshot validation so an accepted command can be retried safely.
           const prior = await tx.audit_log.findFirst({
             where: {
               details: { path: ["submissionKey"], equals: submissionKey },

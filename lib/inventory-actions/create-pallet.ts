@@ -1,3 +1,8 @@
+/**
+ * Creates a shared PALLET location and its audit receipt for the Create pallet form
+ * via /api/inventory-actions. Staff, active site and duplicate-code checks run in the
+ * same serializable transaction; retry receipts prevent duplicate creations.
+ */
 import "server-only"
 import type { PrismaClient } from "@/lib/generated/prisma/client"
 import {

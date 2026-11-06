@@ -1,3 +1,10 @@
+/**
+ * Reads can locations, miner occupancy and port reservations for the site-map API
+ * routes. Building summaries reuse live-contracts.ts assignment rules so selector
+ * counts agree with the grid without pretending to have firmware measurements.
+ *
+ * Navigation: miner select; can map and consistency checks; building/can assignment summaries.
+ */
 import "server-only"
 import { summarizeCanAssignments } from "./live-contracts"
 import type { PrismaClient } from "@/lib/generated/prisma/client"
@@ -15,6 +22,7 @@ const minerSelect = {
   current_location_id: true,
   current_location: { select: { kind: true } },
 } as const
+// Can detail preserves topology holes and conflicting assignments instead of hiding them.
 export async function readLiveCanMap(
   db: Pick<PrismaClient, "can">,
   siteId: number,
@@ -170,6 +178,7 @@ export async function readLiveCanMap(
   }
 }
 
+// Building summaries share the assignment rules used by can status selectors.
 export async function readBuildingMapSummary(
   db: Pick<PrismaClient, "$transaction">,
   siteId: number,

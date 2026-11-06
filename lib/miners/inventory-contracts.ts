@@ -1,3 +1,8 @@
+/**
+ * Defines browser-safe miner directory, selected-miner and query DTOs for /api/miners.
+ * The read-inventory adapter translates Prisma rows into these shapes; components
+ * consume recorded inventory and history without importing the database layer.
+ */
 export const inventoryKinds = [
   "DEPLOYMENT_SLOT",
   "PALLET",

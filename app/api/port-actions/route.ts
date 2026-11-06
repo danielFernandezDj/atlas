@@ -1,3 +1,8 @@
+/**
+ * Connects map port actions to lib/port-actions/read.ts and write.ts. GET returns
+ * port snapshots and destinations; POST verifies staff and strict commands before
+ * transactional changes to placement, reservations, history and audit records.
+ */
 import { prisma } from "@/lib/prisma"
 import { actionActor, actionFailure } from "@/lib/inventory-actions/access"
 import {

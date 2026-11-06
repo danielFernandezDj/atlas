@@ -4,8 +4,8 @@ The existing miner directory and selection workflow still open the native select
 
 ## Components and data ownership
 
-- `components/technician/miner-workspace.tsx`: existing selection, inventory reads, history, and movements; passes authoritative Atlas details and the existing timeline to `MinerRecord`.
-- `components/technician/miner-record/miner-record.tsx`: record summary, accessible tabs, telemetry read lifecycle, cancellation, preview controls, and unavailable/error states.
+- `components/technician/legacy/miner-workspace.tsx`: existing selection, inventory reads, history, and movements; passes authoritative Atlas details and the existing timeline to `MinerRecord`.
+- `components/technician/legacy/miner-record/miner-record.tsx`: record summary, accessible tabs, telemetry read lifecycle, cancellation, preview controls, and unavailable/error states.
 - `telemetry-overview.tsx`: summary, cooling, performance, and three board panels.
 - `telemetry-settings.tsx`: cooling/performance configuration and multiple pools, rendered only as text. No firmware writes or success simulations.
 - `miner-record.css`: feature-scoped responsive styles using Atlas theme tokens; wide desktop dialog, full-screen mobile dialog, persistent summary and separately scrolling content.

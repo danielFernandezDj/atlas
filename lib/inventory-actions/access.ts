@@ -1,3 +1,8 @@
+/**
+ * Resolves the verified Neon Auth session to an active Atlas staff record for
+ * inventory and port API routes. Write access is derived from the stored role;
+ * actionFailure translates known errors without exposing database details.
+ */
 import "server-only"
 import { auth } from "@/lib/auth/server"
 import { prisma } from "@/lib/prisma"

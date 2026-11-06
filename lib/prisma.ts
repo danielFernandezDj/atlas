@@ -1,3 +1,8 @@
+/**
+ * Creates the shared Neon-backed Prisma client used only by server routes and services.
+ * Development reuses the client across reloads; authorization and transactions belong
+ * to the feature services that call it.
+ */
 import { PrismaNeon } from "@prisma/adapter-neon"
 import { PrismaClient } from "@/lib/generated/prisma/client"
 
@@ -12,8 +17,7 @@ const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient
 }
 
-export const prisma =
-  globalForPrisma.prisma ?? new PrismaClient({ adapter })
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter })
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma

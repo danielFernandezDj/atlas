@@ -1,0 +1,841 @@
+/**
+ * Shares dialog, picker, draft/review, confirmation and pallet styles across inventory actions.
+ * InventoryActions loads this stylesheet for its delegated workflow panels; behavior
+ * and database validation live in the corresponding TSX and server services.
+ *
+ * Navigation: dialog shell; action menu/forms; pickers and results; account activity; contextual miner panels; insertion/review/confirmation; creation/scrap; pallet directory/editor.
+ */
+.atlas-dialog.atlas-inventory-action-dialog {
+  width: min(760px, calc(100vw - 24px));
+  max-height: calc(100svh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--foreground);
+  overflow: auto;
+}
+.atlas-inventory-action-dialog::backdrop {
+  background: #0009;
+}
+.atlas-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.atlas-action-header h2 {
+  font-size: 21px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+.atlas-action-header > button {
+  padding: 6px;
+}
+.atlas-action-body {
+  padding: 24px;
+  font-size: 12px;
+}
+.atlas-action-menu {
+  display: grid;
+  gap: 10px;
+}
+.atlas-action-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+  background: var(--background);
+}
+.atlas-action-menu > button:hover {
+  border-color: var(--atlas-blue);
+}
+.atlas-action-menu > button > span {
+  flex: 1;
+}
+.atlas-action-menu strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.atlas-action-menu small {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.atlas-action-back {
+  margin-bottom: 18px;
+}
+.atlas-action-form,
+.atlas-action-form fieldset {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+.atlas-action-form label,
+.atlas-action-picker label {
+  display: grid;
+  gap: 7px;
+  font-size: 11px;
+}
+.atlas-action-form input,
+.atlas-action-form select,
+.atlas-action-form textarea,
+.atlas-action-picker input,
+.atlas-action-picker select {
+  min-height: 39px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 12px;
+}
+.atlas-action-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.atlas-action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 15px;
+  border-radius: 7px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+.atlas-action-primary:disabled {
+  opacity: 0.5;
+}
+.atlas-action-footer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.atlas-action-save-note {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.atlas-action-error {
+  border: 1px solid #d9636355;
+  background: #d9636310;
+  border-radius: 8px;
+  padding: 12px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+.atlas-action-error button {
+  text-decoration: underline;
+  font-size: 11px;
+  margin-right: 12px;
+}
+.atlas-action-miner {
+  display: grid;
+  gap: 7px;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+.atlas-action-miner > span {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.atlas-action-miner button {
+  justify-self: start;
+}
+.atlas-action-picker {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.atlas-action-picker > form,
+.atlas-action-location-search {
+  display: flex;
+  align-items: end;
+  gap: 9px;
+}
+.atlas-action-picker > form label,
+.atlas-action-location-search label {
+  flex: 1;
+  min-width: 0;
+}
+.atlas-action-picker h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.atlas-action-results {
+  max-height: 230px;
+  overflow: auto;
+  display: grid;
+  gap: 5px;
+}
+.atlas-action-results button {
+  display: block;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.atlas-action-results button:hover:not(:disabled) {
+  background: var(--accent);
+}
+.atlas-action-results button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.atlas-action-results span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.atlas-action-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10px;
+  margin-top: 6px;
+}
+.atlas-action-pagination button {
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+}
+.atlas-action-pagination button:disabled {
+  opacity: 0.4;
+}
+.atlas-action-success {
+  display: grid;
+  gap: 16px;
+}
+.atlas-account-positioner {
+  z-index: 70;
+}
+.atlas-account-popover {
+  width: 350px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100svh - 32px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 12px 35px #00000030;
+  font-size: 12px;
+}
+.atlas-account-popover .atlas-action-header {
+  padding: 16px 18px;
+  font-weight: 600;
+}
+.atlas-account-body {
+  padding: 18px;
+  overflow-wrap: anywhere;
+}
+.atlas-account-role {
+  font-size: 9px;
+  color: var(--muted-foreground);
+  margin-top: 5px;
+}
+.atlas-slack-recommendation {
+  padding: 12px;
+  margin: 16px 0;
+  background: color-mix(in oklch, var(--primary) 7%, var(--popover));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-slack-recommendation strong {
+  font-size: 11px;
+}
+.atlas-slack-recommendation p {
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 6px;
+  color: var(--muted-foreground);
+}
+.atlas-account-activity-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0 10px;
+  font-weight: 600;
+}
+.atlas-account-activity-heading button {
+  padding: 5px;
+  cursor: pointer;
+}
+.atlas-account-activity {
+  max-height: 240px;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+}
+.atlas-account-activity li {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.atlas-account-activity strong,
+.atlas-account-activity span,
+.atlas-account-activity time {
+  display: block;
+  font-size: 10px;
+}
+.atlas-account-activity time,
+.atlas-account-activity span {
+  color: var(--muted-foreground);
+  margin-top: 3px;
+}
+.atlas-account-signout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  min-height: 38px;
+  width: 100%;
+  margin-top: 18px;
+  cursor: pointer;
+}
+.atlas-account-signout:hover {
+  background: var(--accent);
+}
+.atlas-port-action {
+  width: 100%;
+  text-align: left;
+  padding: 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.atlas-port-action:hover {
+  background: var(--accent);
+}
+.atlas-port-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (max-width: 650px) {
+  .atlas-action-body {
+    padding: 16px;
+  }
+  .atlas-action-header {
+    padding: 16px;
+  }
+  .atlas-action-fields {
+    grid-template-columns: 1fr;
+  }
+  .atlas-action-menu > button {
+    padding: 14px;
+  }
+}
+
+.atlas-action-company-info {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.atlas-action-components {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.atlas-action-components h3,
+.atlas-action-vnish h3,
+.atlas-action-location-history h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.atlas-action-components dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.atlas-action-components dt {
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.atlas-action-components dd {
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+.atlas-action-location-history {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+.atlas-action-location-history ol {
+  display: grid;
+  gap: 12px;
+  max-height: 240px;
+  overflow: auto;
+  margin-top: 12px;
+}
+.atlas-action-location-history li {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-action-location-history li span {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  margin: 5px 0;
+}
+@media (max-width: 600px) {
+  .atlas-action-components dl {
+    grid-template-columns: 1fr;
+  }
+}
+
+.atlas-required {
+  color: #ef6c76;
+  font-size: 14px;
+  font-weight: 700;
+}
+.atlas-action-fixed-companies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  grid-column: 1/-1;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-action-fixed-companies span {
+  color: var(--muted-foreground);
+}
+.atlas-action-fixed-companies strong {
+  color: var(--foreground);
+}
+.atlas-location-coordinate {
+  color: var(--atlas-green, #22a875);
+  font-weight: 750;
+  font-size: 13px;
+}
+.atlas-insert-miners,
+.atlas-insert-draft {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.atlas-insert-draft {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.atlas-insert-queue {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.atlas-insert-queue li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.atlas-insert-queue li > div {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.atlas-insert-miners textarea {
+  width: 100%;
+}
+
+.atlas-inventory-action-dialog .atlas-action-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+}
+
+.atlas-dialog.atlas-inventory-action-dialog.atlas-insert-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.atlas-insert-dialog > .atlas-action-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% - 356px);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 0 0;
+}
+.atlas-insert-dialog > .atlas-action-body {
+  padding: 0;
+}
+.atlas-insert-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  min-width: 0;
+}
+.atlas-insert-entry-panel,
+.atlas-insert-review-panel {
+  height: min(840px, calc(100svh - 32px));
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.atlas-insert-entry-panel {
+  padding: 110px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: auto;
+}
+.atlas-insert-entry-panel > .atlas-text-button {
+  align-self: flex-start;
+}
+.atlas-insert-review-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.atlas-insert-review-panel > header {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.atlas-insert-review-panel h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+.atlas-insert-review-panel h3 span {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.atlas-insert-review-list {
+  padding: 16px;
+  min-height: 100px;
+  overflow: auto;
+  flex: 1;
+}
+.atlas-insert-review-list .atlas-insert-queue {
+  margin: 0;
+}
+.atlas-insert-review-list .atlas-insert-queue li {
+  display: grid;
+  gap: 12px;
+  background: var(--background);
+}
+.atlas-insert-review-list li[data-editing="true"] {
+  border-color: var(--primary);
+}
+.atlas-insert-card-actions {
+  display: flex !important;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+.atlas-insert-remove {
+  color: var(--atlas-red, #e65e65);
+}
+.atlas-insert-review-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+  flex-shrink: 0;
+}
+.atlas-insert-review-footer .atlas-action-footer {
+  flex-wrap: wrap;
+}
+.atlas-dialog.atlas-insert-confirmation {
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+}
+.atlas-insert-confirmation > p {
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 12px 0 20px;
+}
+.atlas-insert-confirmation .atlas-action-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .atlas-dialog.atlas-inventory-action-dialog.atlas-insert-dialog {
+    overflow: auto;
+  }
+  .atlas-insert-dialog > .atlas-action-header {
+    position: sticky;
+    width: 100%;
+  }
+  .atlas-insert-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .atlas-insert-entry-panel {
+    height: auto;
+    padding: 20px 16px;
+    overflow: visible;
+    border-radius: 0 0 14px 14px;
+  }
+  .atlas-insert-review-panel {
+    height: auto;
+    min-height: 260px;
+  }
+  .atlas-insert-review-list {
+    max-height: 320px;
+  }
+}
+.atlas-dialog.atlas-create-serial-dialog {
+  width: min(460px, calc(100vw - 24px));
+}
+.atlas-create-serial-entry {
+  display: grid;
+  gap: 18px;
+}
+.atlas-creation-state-choice {
+  display: grid;
+  gap: 10px;
+}
+.atlas-creation-state-choice legend,
+.atlas-scrap-checklist legend {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.atlas-creation-state-choice label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.atlas-creation-state-choice label[data-selected="true"] {
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 7%, var(--card));
+}
+.atlas-creation-state-choice label span {
+  display: grid;
+  gap: 4px;
+}
+.atlas-creation-state-choice small {
+  color: var(--muted-foreground);
+}
+.atlas-creation-state-choice input[type="radio"],
+.atlas-scrap-checklist input[type="checkbox"],
+.atlas-scrap-final-ack input {
+  width: 16px;
+  min-height: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  padding: 0;
+  margin-top: 2px;
+  accent-color: var(--primary);
+}
+.atlas-scrap-checklist {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.atlas-scrap-checklist label,
+.atlas-scrap-final-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.atlas-scrap-final-ack {
+  line-height: 1.6;
+  margin: 16px 0 22px;
+}
+.atlas-creation-state[data-registration-state="READY"] {
+  color: var(--atlas-green, #22a875);
+  font-weight: 600;
+}
+.atlas-creation-state[data-registration-state="SCRAP"] {
+  color: var(--atlas-red, #e65e65);
+  font-weight: 600;
+}
+.atlas-port-action-fields {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  margin: 18px 0;
+}
+.atlas-port-action-fields h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.atlas-port-reason-label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.atlas-port-reason-label select {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+}
+.atlas-port-keep-reservation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+.atlas-port-keep-reservation input {
+  accent-color: var(--primary);
+  width: 15px;
+  height: 15px;
+}
+.atlas-port-workflow .atlas-action-miner {
+  overflow-wrap: anywhere;
+}
+.atlas-port-workflow .atlas-directory-filters {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+.atlas-port-workflow .atlas-directory-search {
+  grid-column: 1/-1;
+}
+.atlas-port-danger {
+  background: var(--destructive);
+}
+
+.atlas-port-last-change {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+.atlas-port-last-change h3 {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.atlas-port-last-change p {
+  overflow-wrap: anywhere;
+  margin-top: 5px;
+}
+
+.atlas-dialog.atlas-pallet-dialog {
+  width: min(520px, calc(100vw - 24px));
+}
+.atlas-create-pallet-form {
+  margin-top: 18px;
+}
+
+.atlas-manage-pallets {
+  display: grid;
+  gap: 16px;
+}
+.atlas-pallet-filters {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+.atlas-pallet-filters label > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.atlas-pallet-list {
+  display: grid;
+  gap: 8px;
+}
+.atlas-pallet-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  text-align: left;
+  cursor: pointer;
+  background: var(--background);
+}
+.atlas-pallet-card:hover,
+.atlas-pallet-card:focus-visible {
+  border-color: var(--atlas-blue);
+}
+.atlas-pallet-card > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.atlas-pallet-card strong,
+.atlas-pallet-card small {
+  display: block;
+}
+.atlas-pallet-card small {
+  color: var(--muted-foreground);
+  margin-top: 5px;
+}
+.atlas-pallet-card-meta {
+  margin-left: auto;
+  text-align: right;
+  flex-shrink: 0;
+}
+.atlas-pallet-summary,
+.atlas-pallet-confirm {
+  border: 1px solid var(--border);
+  background: var(--background);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.atlas-pallet-summary p,
+.atlas-pallet-confirm p {
+  margin-top: 8px;
+  color: var(--muted-foreground);
+}
+.atlas-pallet-danger {
+  color: var(--destructive);
+  border: 1px solid currentColor;
+  border-radius: 7px;
+  padding: 9px 12px;
+}
+.atlas-pallet-danger:disabled {
+  opacity: 0.4;
+}
+@media (max-width: 540px) {
+  .atlas-pallet-filters {
+    grid-template-columns: 1fr;
+  }
+  .atlas-pallet-card {
+    gap: 8px;
+    padding: 10px;
+  }
+}

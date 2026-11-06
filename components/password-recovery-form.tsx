@@ -1,14 +1,19 @@
 "use client"
+/**
+ * Manages the temporary email, reset-code and password steps for existing accounts.
+ * lib/auth/password-recovery.ts calls the Neon Auth client so the auth service handles
+ * password updates; this form never writes password hashes or inventory directly.
+ */
 
-import Link from "next/link"
-import { useEffect, useState, type FormEvent } from "react"
+import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth/client"
 import {
   completePasswordRecovery,
   recoveryConfirmation,
   requestRecoveryCode,
 } from "@/lib/auth/password-recovery"
-import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { useEffect, useState, type FormEvent } from "react"
 
 export function PasswordRecoveryForm() {
   const [step, setStep] = useState<"request" | "reset" | "complete">("request")

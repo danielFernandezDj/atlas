@@ -1,11 +1,16 @@
 "use client"
+/**
+ * Renders existing-account login, account details and sign-out using lib/auth/client.ts.
+ * Public registration remains disabled by the server auth route; recovery links open
+ * the dedicated password recovery screen.
+ */
 
-import { useState, type FormEvent } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState, type FormEvent } from "react"
 
-import { authClient } from "@/lib/auth/client"
 import { Button } from "@/components/ui/button"
+import { authClient } from "@/lib/auth/client"
 
 type AuthUser = {
   name: string

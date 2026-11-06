@@ -1,3 +1,7 @@
+/**
+ * Defines shared theme tokens and base application styles loaded by app/layout.tsx.
+ * Feature styles consume these tokens; layout and interaction state remain in components.
+ */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

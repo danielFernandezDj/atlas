@@ -1,3 +1,8 @@
+/**
+ * Provides the pure grid model and service interface for legacy/site-map.tsx and
+ * lib/demo/miner-service.ts. It builds fixture/service maps and warnings; production
+ * map reads instead use read-live.ts and live-contracts.ts.
+ */
 import type { Building, Can, Location, Miner, Site } from "../miners/contracts"
 
 export type SlotState =
@@ -33,7 +38,7 @@ export type CanMapDetail = MapContext & {
   locations: Location[]
   miners: Miner[]
 }
-/** Proposed read interface only; no map HTTP endpoint exists in this MVP. */
+/** Legacy service interface; production map endpoints use read-live.ts instead. */
 export interface SiteMapService {
   getSiteMapOverview(
     siteId: number,

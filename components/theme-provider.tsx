@@ -1,7 +1,11 @@
 "use client"
+/**
+ * Provides next-themes context to app/layout.tsx and its descendants.
+ * It manages browser theme preferences, independently of inventory and authentication.
+ */
 
-import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
+import * as React from "react"
 
 function ThemeProvider({
   children,

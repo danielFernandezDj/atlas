@@ -1,3 +1,8 @@
+/**
+ * Returns building inventory summaries to site-map/building-inventory.tsx.
+ * After access and site/building checks, lib/site-map/read-live.ts performs the reads
+ * used by building totals and can status indicators.
+ */
 import { prisma } from "@/lib/prisma"
 import { minerReadAccess } from "@/lib/miners/api-access"
 import { parseMinerId, InventoryInputError } from "@/lib/miners/read-inventory"

@@ -1,3 +1,10 @@
+/**
+ * Loads inventory action options, miner versions and available destinations for
+ * /api/inventory-actions. Availability combines ancestry, occupancy and reservation
+ * rules; write.ts rechecks these rules inside the final transaction.
+ *
+ * Navigation: location selection/labels; options; miner snapshot; destination search; fixed companies and availability.
+ */
 import "server-only"
 import type { PrismaClient, Prisma } from "@/lib/generated/prisma/client"
 import { ActionError, canWriteInventory } from "./contracts"
@@ -54,6 +61,7 @@ export const activeLocation = (l: {
   l.site.is_active &&
   (l.building?.is_active ?? true) &&
   (l.can?.is_active ?? true)
+// Reference options and write capability supplied to the action coordinator.
 export async function readActionOptions(db: PrismaClient, role: string) {
   const [companies, models, sites] = await Promise.all([
     db.companies.findMany({
@@ -97,6 +105,7 @@ export async function readActionOptions(db: PrismaClient, role: string) {
     sites,
   }
 }
+// Mutable miner snapshot includes the version used for optimistic writes.
 export async function readActionMiner(db: PrismaClient, id: number) {
   const m = await db.miner.findUnique({
     where: { id },
@@ -129,6 +138,7 @@ export async function readActionMiner(db: PrismaClient, id: number) {
       : "Not assigned",
   }
 }
+// Destination search filters candidates; the transaction repeats availability checks at commit time.
 export async function readActionLocations(
   db: PrismaClient,
   p: URLSearchParams,
@@ -204,6 +214,7 @@ export async function readActionLocations(
   }
 }
 
+// Company assignment is fixed by the current operational workflow, not selectable per registration.
 export function fixedCompanies(companies: { id: number; name: string }[]) {
   const owners = companies.filter(
     (c) => c.name.trim().toLowerCase() === "ionic"

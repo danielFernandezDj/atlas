@@ -1,3 +1,7 @@
+/**
+ * Checks the Neon Auth session before showing AuthPanel for the account route.
+ * The server probes Postgres connectivity, but does not modify staff or inventory.
+ */
 import { redirect } from "next/navigation"
 
 import { AuthPanel } from "@/components/auth-panel"

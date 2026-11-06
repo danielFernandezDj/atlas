@@ -1,3 +1,10 @@
+/**
+ * Connects inventory action components to the server read/write services in
+ * lib/inventory-actions/. GET returns authorized picker and pallet data; POST validates
+ * same-origin JSON commands and staff access before delegating transactional writes.
+ *
+ * Navigation: GET resources; POST request checks; pallet commands; miner batch commands; single-miner commands.
+ */
 import { prisma } from "@/lib/prisma"
 import { actionActor, actionFailure } from "@/lib/inventory-actions/access"
 import {

@@ -1,3 +1,7 @@
+/**
+ * Displays the pending state while /technician loads its authorized dashboard.
+ * Next.js owns this route fallback; it neither requests nor changes inventory.
+ */
 export default function Loading() {
   return (
     <main

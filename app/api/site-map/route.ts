@@ -1,3 +1,8 @@
+/**
+ * Reads a can map for an authorized staff member using lib/site-map/read-live.ts.
+ * site-map/live-site-map.tsx requests this resource after can selection; the response
+ * represents database assignments and reservations rather than invented telemetry.
+ */
 import { prisma } from "@/lib/prisma"
 import { minerReadAccess } from "@/lib/miners/api-access"
 import { parseMinerId, InventoryInputError } from "@/lib/miners/read-inventory"

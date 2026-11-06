@@ -1,3 +1,8 @@
+/**
+ * Defines the provider interface and nullable telemetry DTOs used by legacy miner
+ * record demonstrations. Atlas inventory owns identity/location; a future real VNish
+ * adapter must provide measurements rather than infer them from inventory.
+ */
 import type { Miner } from "../miners/contracts"
 
 /** Atlas owns identity/location. These DTOs describe a separate telemetry source,

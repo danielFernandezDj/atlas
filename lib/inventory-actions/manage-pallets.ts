@@ -1,3 +1,10 @@
+/**
+ * Reads the pallet directory and applies edits, archive, restore and unused deletion
+ * commands from /api/inventory-actions. Used pallets retain history through archival;
+ * occupancy, expected details and retry receipts are checked inside the write transaction.
+ *
+ * Navigation: shared select; paginated directory/history usage; authorized transactional changes and audit; retry/error translation.
+ */
 import "server-only"
 import { Prisma, type PrismaClient } from "@/lib/generated/prisma/client"
 import {
@@ -23,6 +30,7 @@ const select = {
     },
   },
 } as const
+// Directory reads include archived rows so technicians can restore them.
 export async function readPallets(
   db: Pick<PrismaClient, "locations" | "$queryRaw">,
   params: URLSearchParams
@@ -91,6 +99,7 @@ export async function readPallets(
     })),
   }
 }
+// All modifications recheck the authenticated actor and selected pallet inside a transaction.
 export async function performManagePallet(
   db: Pick<PrismaClient, "$transaction">,
   actorId: number,
@@ -154,6 +163,7 @@ export async function performManagePallet(
               409,
               "Move all miners off this pallet before archiving or deleting it."
             )
+          // Empty does not mean unused: movement and initial-registration history must survive.
           if (input.operation === "delete") {
             const initial = await tx.miner_history.findFirst({
               where: { details: { path: ["palletId"], equals: pallet.id } },

@@ -1,4 +1,8 @@
 "use client"
+/**
+ * Provides /technician with a recoverable error screen when loading fails.
+ * The route boundary supplies the retry callback; this component only renders UI.
+ */
 
 export default function DashboardError({ retry }: { retry: () => void }) {
   return (

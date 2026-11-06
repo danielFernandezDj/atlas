@@ -1,3 +1,8 @@
+/**
+ * Authorizes read access to miner and site-map endpoints using the Neon Auth session
+ * and active Atlas staff record. The shared error response hides infrastructure details
+ * while feature readers handle their own input and missing-record checks.
+ */
 import "server-only"
 import { auth } from "@/lib/auth/server"
 import { prisma } from "@/lib/prisma"

@@ -1,3 +1,8 @@
+/**
+ * Defines strict port commands and snapshot comparison shared by map action forms
+ * and lib/port-actions/write.ts. Expected occupancy/reservation snapshots help reject
+ * stale technician actions; the server still owns permissions and availability checks.
+ */
 import { z } from "zod"
 const id = z.number().int().positive().max(2147483647)
 const version = z.number().int().nonnegative().max(2147483647)
