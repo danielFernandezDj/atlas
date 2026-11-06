@@ -1,3 +1,8 @@
+/**
+ * Defines live map DTOs, assignment summaries, status labels and color/filter rules
+ * shared by site-map components and read-live.ts. Pure helpers distinguish database
+ * assignments from optional telemetry; missing readings do not mean zero hash rate.
+ */
 export const portStates = {
   hashing: "Hashing",
   slow: "Low hash rate",

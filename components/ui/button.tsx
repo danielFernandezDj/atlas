@@ -1,3 +1,7 @@
+/**
+ * Defines the shared styled button primitive used by Atlas screens.
+ * Variant and accessibility behavior stay here; feature components supply actions and state.
+ */
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"

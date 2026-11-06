@@ -1,3 +1,12 @@
+/**
+ * Owns miner registration, metadata edits, movement and batch transactions behind
+ * /api/inventory-actions. applyInventoryAction is also used by port-actions/write.ts
+ * so port operations retain the same version, reservation, history and retry rules.
+ *
+ * Navigation: transaction retry wrapper; single-action authorization/receipts; creation and destination checks;
+ * miner/component/history writes; movement/reservation writes; deterministic batch keys; batch transaction coordinator.
+ * The single-action primitive stays together because its ordered locks and writes share one transaction.
+ */
 import "server-only"
 import { createHash } from "node:crypto"
 import type { PrismaClient, Prisma } from "@/lib/generated/prisma/client"
@@ -23,6 +32,7 @@ function retryable(error: unknown) {
   const e = error as { code?: string; meta?: { code?: string } }
   return e.code === "P2034" || ["40001", "40P01"].includes(e.meta?.code ?? "")
 }
+// Transaction wrapper: serialization failures retry, domain failures preserve the draft for correction.
 export async function performInventoryAction(
   db: Pick<PrismaClient, "$transaction">,
   actorId: number,
@@ -49,6 +59,7 @@ export async function performInventoryAction(
   throw new ActionError(409, "Inventory changed. Please try again.")
 }
 
+// Single-action primitive: shared by miner actions, batches and contextual port operations.
 export async function applyInventoryAction(
   tx: Prisma.TransactionClient,
   actorId: number,
@@ -64,6 +75,7 @@ export async function applyInventoryAction(
   })
   if (!actor?.is_active || !canWriteInventory(actor.role))
     throw new ActionError(403, "Your account cannot change inventory.")
+  // Replay before checking mutable versions: a committed request may be retried with its original snapshot.
   const prior = await tx.audit_log.findFirst({
     where: {
       details: { path: ["submissionKey"], equals: submissionKey },
@@ -248,6 +260,7 @@ export async function applyInventoryAction(
         throw new ActionError(409, "Another miner occupies that location.")
     }
   }
+  // Registration records real skeleton identity and presence evidence without fabricating boards.
   if (input.kind === "create") {
     const m = await tx.miner.create({
       data: {
@@ -425,6 +438,7 @@ export async function applyInventoryAction(
   return result
 }
 
+// Stable child keys let one batch reuse the same single-action primitive without duplicating receipts.
 export function placementKey(batchKey: string, index: number) {
   const hex = createHash("sha256").update(`${batchKey}:${index}`).digest("hex")
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
@@ -443,6 +457,7 @@ export function performCreateBatch(
 ) {
   return performInventoryBatch(db, actorId, input)
 }
+// Batch coordinator: every child mutation shares one transaction, so partial batches never persist.
 async function performInventoryBatch(
   db: Pick<PrismaClient, "$transaction">,
   actorId: number,

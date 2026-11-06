@@ -1,3 +1,10 @@
+/**
+ * Defines strict command schemas, picker DTOs and inventory write-role checks shared
+ * by the action UI, API route and transactional services. Local draft validation is
+ * convenience only; the server parses commands again before writing.
+ *
+ * Navigation: creation rules; single-miner commands and access; picker DTOs; batch commands; pallet commands.
+ */
 import { z } from "zod"
 const id = z.number().int().positive().max(2147483647)
 const text = z.string().trim().min(1).max(200)
@@ -11,6 +18,7 @@ const metadata = {
   modelId: id.nullable(),
   assetTag: z.string().trim().max(200).nullable(),
 }
+// Creation rules: presence acknowledgment is distinct from component identity.
 export const scrapConfirmationSchema = z
   .object({
     skeleton: z.literal(true),
@@ -172,6 +180,7 @@ export class ActionError extends Error {
 export const canWriteInventory = (role: string) =>
   ["ADMIN", "MANAGER", "TECHNICIAN"].includes(role)
 
+// Batch commands validate unique entries before any transactional writes.
 export const insertSchema = z
   .object({
     kind: z.literal("insert"),
@@ -206,6 +215,7 @@ export const insertSchema = z
   })
 export type InsertCommand = z.infer<typeof insertSchema>
 
+// Pallet commands: the server owns site/code uniqueness and usage checks.
 export const createPalletSchema = z
   .object({
     kind: z.literal("create-pallet"),

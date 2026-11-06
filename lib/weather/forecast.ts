@@ -1,3 +1,8 @@
+/**
+ * Reads and validates weather-service data for the fixed site pins used by
+ * /api/weather. Forecast normalization handles dates, daily summaries and missing
+ * values; this service does not read or write Atlas inventory.
+ */
 import {
   siteTimeZone,
   type WeatherSite,

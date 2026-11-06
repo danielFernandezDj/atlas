@@ -1,3 +1,8 @@
+/**
+ * Serves forecasts for the fixed site pins in lib/weather/sites.ts.
+ * workspace/weather-outlook.tsx calls this route; lib/weather/forecast.ts reads and
+ * normalizes weather-service responses without changing inventory.
+ */
 import { weatherSites } from "@/lib/weather/sites"
 import { readSiteForecast } from "@/lib/weather/forecast"
 

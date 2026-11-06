@@ -1,3 +1,8 @@
+/**
+ * Coordinates email-code recovery calls for PasswordRecoveryForm through an injected
+ * auth client. It normalizes input and avoids disclosing whether an account exists;
+ * the auth service, not this helper, stores the new password.
+ */
 type RecoveryError = { code?: string; status?: number }
 type RecoveryResponse = { error?: RecoveryError | null }
 export type RecoveryClient = {

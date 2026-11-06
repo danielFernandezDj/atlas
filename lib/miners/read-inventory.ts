@@ -1,3 +1,10 @@
+/**
+ * Validates miner queries and selects database-backed directory/detail records for
+ * the miner API routes. Components receive stable DTOs with location, components and
+ * history; firmware telemetry is outside this reader.
+ *
+ * Navigation: query validation; select shapes and DTOs; directory filters/pagination; selected miner components/history.
+ */
 import "server-only"
 import type { Prisma, PrismaClient } from "@/lib/generated/prisma/client"
 import {
@@ -25,6 +32,7 @@ const positiveInteger = (
   return Number(value)
 }
 
+// Validate directory filters before constructing Prisma predicates.
 export function parseInventoryQuery(params: URLSearchParams): InventoryQuery {
   for (const key of ["search", "site", "kind", "page", "pageSize"]) {
     if (params.getAll(key).length > 1)
@@ -57,6 +65,7 @@ export function parseMinerId(value: string) {
   return positiveInteger(value, 1, 2147483647)
 }
 
+// Select shapes and DTO conversion keep Prisma-specific fields off the client boundary.
 const locationSelect = {
   id: true,
   name: true,
@@ -160,6 +169,7 @@ function inventoryWhere(query: InventoryQuery): Prisma.minerWhereInput {
 }
 
 // Call only after the server request's staff authorization check.
+// Directory reads are bounded and separately count the matching records.
 export async function readMinerInventory(
   db: Pick<PrismaClient, "$transaction">,
   query: InventoryQuery
@@ -190,6 +200,7 @@ export async function readMinerInventory(
   )
 }
 
+// Selected-miner reads include real component identities and recorded history, not firmware readings.
 export async function readMinerInventoryDetail(
   db: Pick<PrismaClient, "miner" | "miner_history">,
   id: number

@@ -1,3 +1,8 @@
+/**
+ * Contains the older service-interface model used by legacy miner screens, site-map/model.ts
+ * and disposable demo adapters. The database-backed workspace uses inventory-contracts.ts
+ * instead; these types and formatters do not contact the database.
+ */
 /** Proposed integration boundary. No miner HTTP API currently exists in Atlas.
  * Implement this interface on the server-backed adapter before production use.
  * These presentation DTOs deliberately exclude occupied_slot_id and actor input.

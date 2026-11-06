@@ -1,6 +1,8 @@
-# Next.js template
+# Atlas
 
-This is a Next.js template with shadcn/ui.
+Mining inventory and technician workflows built with Next.js, Neon Auth and Postgres.
+Start with [the developer guide](docs/developer-guide.md) to find feature folders,
+trace UI → API → database paths, and understand Create miner and pallet management.
 
 ## Neon services
 

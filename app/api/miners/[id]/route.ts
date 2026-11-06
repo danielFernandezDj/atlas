@@ -1,3 +1,8 @@
+/**
+ * Serves the selected miner’s inventory, components and history to the miner workspace
+ * and action forms. Authorization precedes lib/miners/read-inventory.ts reads; this
+ * endpoint does not supply live firmware telemetry or accept edits.
+ */
 import { prisma } from "@/lib/prisma"
 import { minerReadAccess, inventoryFailure } from "@/lib/miners/api-access"
 import {

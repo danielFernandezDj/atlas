@@ -1,3 +1,7 @@
+/**
+ * Renders the management reporting shell and unavailable-data messages.
+ * It intentionally does not import demo-data.ts or represent missing metrics as zero.
+ */
 import { Network } from "lucide-react"
 import styles from "./management.module.css"
 

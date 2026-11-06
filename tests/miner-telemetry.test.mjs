@@ -157,7 +157,7 @@ test("preview contains no requests, database access, credentials or operational 
     [
       "../lib/demo/miner-telemetry.ts",
       "../lib/telemetry/contracts.ts",
-      "../components/technician/miner-record/telemetry-settings.tsx",
+      "../components/technician/legacy/miner-record/telemetry-settings.tsx",
     ].map((path) => readFile(new URL(path, import.meta.url), "utf8"))
   )
   for (const source of sources)

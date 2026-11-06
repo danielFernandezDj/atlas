@@ -1,3 +1,10 @@
+/**
+ * Implements the legacy miner service entirely in memory for demo screens and tests.
+ * It simulates inventory, movements and map assignments; live technician routes must
+ * not import this adapter or treat its capabilities as staff authorization.
+ *
+ * Navigation: fixture construction; delay/lookup/destination helpers; map and directory reads; registration; movement; test-only mutation controls.
+ */
 import {
   buildCells,
   countCells,
@@ -35,6 +42,7 @@ const pageOf = <T>(items: T[], page: number, pageSize: number): Page<T> => ({
   page,
   page_size: pageSize,
 })
+// Disposable fixture inventory; never connect this state to live routes.
 export function createDemoMinerService({
   latency = 180,
 }: { latency?: number } = {}) {
@@ -218,6 +226,7 @@ export function createDemoMinerService({
       "RELOCATION",
     ],
   })
+  // Service simulation helpers and eligibility checks.
   async function delay(signal?: AbortSignal) {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
     if (latency)
@@ -398,6 +407,7 @@ export function createDemoMinerService({
         locations: destinationOptions(query),
       })
     },
+    // Demo registration validates first, then commits synchronously to in-memory collections.
     async registerMiner(command: RegisterMinerCommand) {
       await delay()
       const payload = {
@@ -526,6 +536,7 @@ export function createDemoMinerService({
       }
       return { miner: structuredClone(miner) }
     },
+    // Demo movement retains the same validation-before-mutation shape used by the service contract.
     async move(command: MoveCommand) {
       await delay()
       const { submission_key } = command

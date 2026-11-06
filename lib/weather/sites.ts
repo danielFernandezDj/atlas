@@ -1,3 +1,8 @@
+/**
+ * Defines the user-supplied site pins, Central time zone and browser-safe forecast DTOs.
+ * The weather route restricts requests to these sites, while forecast.ts normalizes
+ * upstream data and the workspace displays it.
+ */
 // Centers of the user's Plus Code pins, verified with Google's Open Location Code reference.
 // Short codes recovered near their named Texas towns; these are the site pins, not town centers.
 export const weatherSites = [

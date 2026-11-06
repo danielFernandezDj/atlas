@@ -1,3 +1,8 @@
+/**
+ * Defines the serializable dashboard snapshot and staff-access result shared by
+ * lib/dashboard/read.ts and the technician workspace. These types describe recorded
+ * inventory counts and location topology, without loading or changing data.
+ */
 export type DashboardSite = {
   id: number
   name: string

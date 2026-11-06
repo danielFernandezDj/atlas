@@ -1,3 +1,8 @@
+/**
+ * Supplies explicit synthetic telemetry scenarios for legacy/miner-record and tests.
+ * MockMinerTelemetryProvider never contacts a miner; production panels must not reuse
+ * these fixtures as operational readings.
+ */
 import type { Miner } from "../miners/contracts"
 import type {
   HashboardTelemetry,

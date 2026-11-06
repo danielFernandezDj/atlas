@@ -1,3 +1,8 @@
+/**
+ * Returns paginated audit activity for the currently authenticated Atlas staff member.
+ * workspace/account-menu.tsx reads this endpoint; actionActor derives the user on the
+ * server so clients cannot request another staff member’s activity.
+ */
 import { prisma } from "@/lib/prisma"
 import { actionActor, actionFailure } from "@/lib/inventory-actions/access"
 import { ActionError } from "@/lib/inventory-actions/contracts"

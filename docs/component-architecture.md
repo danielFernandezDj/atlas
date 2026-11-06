@@ -88,8 +88,10 @@ step. Component writes lock affected miner rows in ID order and increment their
 versions. A production adapter must check the expected miner `version` before
 starting the operation, increment it for moves without component changes, and save
 its retry key, movement and any reservation changes in that same transaction.
-The current miner UI uses a demo service, not a production miner HTTP API; its
-presentation contract still uses the retained serial/company/model fields.
+The live miner workspace uses `/api/miners` and `/api/inventory-actions` with
+server readers and transactional writes. Older service/demo components are kept
+in `components/technician/legacy/`; they are not the production UI entry point.
+See [the developer guide](developer-guide.md) for the current file layout.
 
 ## Migration and validation
 

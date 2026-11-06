@@ -1,3 +1,8 @@
+/**
+ * Loads port snapshots and valid destinations for /api/port-actions.
+ * Map action forms use these database reads to describe actual occupants, repair
+ * reservations and available destinations before requesting a change.
+ */
 import "server-only"
 import type { PrismaClient, Prisma } from "@/lib/generated/prisma/client"
 import { ActionError } from "@/lib/inventory-actions/contracts"

@@ -1,3 +1,8 @@
+/**
+ * Reads and normalizes public Coinbase spot prices and daily candles for
+ * dashboard/bitcoin-strip.tsx. This endpoint caches upstream reads and has no trading
+ * or inventory write responsibility.
+ */
 // Public market data only. No account, trading access, or database connection.
 export async function GET() {
   try {

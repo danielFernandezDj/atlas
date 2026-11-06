@@ -1,3 +1,7 @@
+/**
+ * Contains historical synthetic management examples used by demo-data.test.mjs.
+ * These fixtures do not feed the live management page and must not become production metrics.
+ */
 /** MANAGEMENT DEMO ONLY. No production miner types, telemetry integration, or detection rules. */
 export const SNAPSHOT_AT = "2026-10-27T14:00:00.000Z"
 const dayMs = 86400000

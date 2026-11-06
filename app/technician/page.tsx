@@ -1,5 +1,10 @@
+/**
+ * Loads the authenticated technician workspace. Neon Auth supplies the identity,
+ * lib/dashboard/read.ts checks active staff access and reads the database, then
+ * workspace/technician-dashboard.tsx receives a serializable dashboard snapshot.
+ */
 import { AuthPanel } from "@/components/auth-panel"
-import { TechnicianDashboard } from "@/components/technician-dashboard"
+import { TechnicianDashboard } from "@/components/technician/workspace/technician-dashboard"
 import { auth } from "@/lib/auth/server"
 import { readDashboard } from "@/lib/dashboard/read"
 import { prisma } from "@/lib/prisma"

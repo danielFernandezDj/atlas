@@ -1,3 +1,8 @@
+/**
+ * Contains historical synthetic technician snapshots and display fixtures.
+ * Live dashboard and map routes use the database readers instead; this module must
+ * remain outside production data dependency paths.
+ */
 // Synthetic operational snapshots. These are UI fixtures, not production permissions or telemetry.
 export const demoTechnician = "Alex Morgan"
 export const demoSites = [

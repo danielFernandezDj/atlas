@@ -6,9 +6,11 @@ import { fileURLToPath } from "node:url"
 import ts from "typescript"
 
 const root = fileURLToPath(new URL("../", import.meta.url))
-async function dependencies(entry, seen = new Set()) {
+async function dependencies(entry, seen = new Set(), ancestors = new Set()) {
   const file = resolve(root, entry)
+  assert.ok(!ancestors.has(file), `Circular runtime dependency: ${file}`)
   if (seen.has(file)) return seen
+  const nextAncestors = new Set([...ancestors, file])
   seen.add(file)
   const source = ts.createSourceFile(
     file,
@@ -42,7 +44,7 @@ async function dependencies(entry, seen = new Set()) {
           () => false
         )
       ) {
-        await dependencies(candidate, seen)
+        await dependencies(candidate, seen, nextAncestors)
         found = true
         break
       }
@@ -64,13 +66,17 @@ for (const route of ["app/technician/page.tsx", "app/management/page.tsx"]) {
 
 test("dashboard client bundles never import the database or server query layer", async () => {
   for (const entry of [
-    "components/technician-dashboard.tsx",
-    "components/technician/live-miner-workspace.tsx",
-    "components/technician/live-site-map.tsx",
-    "components/technician/inventory-actions.tsx",
-    "components/technician/account-menu.tsx",
-    "components/technician/site-overview.tsx",
-    "components/technician/movement-history.tsx",
+    "components/technician/workspace/technician-dashboard.tsx",
+    "components/technician/miners/live-miner-workspace.tsx",
+    "components/technician/miners/miner-inventory-search.tsx",
+    "components/technician/inventory-actions/creation/create-miners.tsx",
+    "components/technician/inventory-actions/pallets/manage-pallets.tsx",
+    "components/technician/inventory-actions/ports/port-actions.tsx",
+    "components/technician/site-map/live-site-map.tsx",
+    "components/technician/inventory-actions/inventory-actions.tsx",
+    "components/technician/workspace/account-menu.tsx",
+    "components/technician/dashboard/site-overview.tsx",
+    "components/technician/dashboard/movement-history.tsx",
   ]) {
     for (const file of await dependencies(entry)) {
       assert.doesNotMatch(

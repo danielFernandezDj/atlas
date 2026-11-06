@@ -1,3 +1,8 @@
+/**
+ * Wraps the auth handler with Atlas’s existing-account endpoint allowlist.
+ * The auth API route uses this boundary to block registration and alternative flows
+ * that could create users, while preserving login, sessions and password recovery.
+ */
 import type { NextRequest } from "next/server"
 
 type AuthContext = { params: Promise<{ path: string[] }> }

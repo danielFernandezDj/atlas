@@ -1,3 +1,7 @@
+/**
+ * Scopes presentation for ManagementOverview, including reporting cards and responsive layout.
+ * This stylesheet supplies no data or interaction state.
+ */
 .overview {
   --accent: var(--primary);
   min-height: 100svh;

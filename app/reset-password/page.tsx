@@ -1,3 +1,7 @@
+/**
+ * Hosts PasswordRecoveryForm at the existing-account recovery URL. The client form
+ * calls the auth service; this server page sets privacy metadata and writes no inventory.
+ */
 import { PasswordRecoveryForm } from "@/components/password-recovery-form"
 
 export const metadata = {
